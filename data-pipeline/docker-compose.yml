@@ -1,0 +1,84 @@
+version: '3.8'
+
+# Docker Compose for local Airflow development.
+# In production, use managed Airflow (MWAA, Cloud Composer, etc.)
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.0-python3.11
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    # Azure Data Lake
+    AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT:-}
+    AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY:-}
+    AZURE_CONTAINER: ${AZURE_CONTAINER:-pos-data}
+    AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-}
+    # Redshift
+    REDSHIFT_HOST: ${REDSHIFT_HOST:-}
+    REDSHIFT_PORT: ${REDSHIFT_PORT:-5439}
+    REDSHIFT_DB: ${REDSHIFT_DB:-food_sales_db}
+    REDSHIFT_USER: ${REDSHIFT_USER:-admin}
+    REDSHIFT_PASSWORD: ${REDSHIFT_PASSWORD:-}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./scripts:/opt/airflow/scripts
+    - ./config:/opt/airflow/config
+    - ../ml-model:/opt/ml-model
+    - airflow-logs:/opt/airflow/logs
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db init
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: always
+
+volumes:
+  postgres-data:
+  airflow-logs:

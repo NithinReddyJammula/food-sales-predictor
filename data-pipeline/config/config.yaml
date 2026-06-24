@@ -1,0 +1,337 @@
+databricks:
+  host: "https://adb-7405612883105762.2.azuredatabricks.net"
+  catalog: 'food_sales_forecast'
+  cluster-id: '0527-054752-thnpzgrm'
+  app-name: 'training_dataset_cleaning'
+
+schemas:
+  base: 'store-schema'
+  processed: 'store-data-processing-schema'
+  forecast: 'sale-prediction'
+
+transformed_target_table: 'transformed_training_data'
+
+training_data_location:
+  dataset: '/Volumes/food_sales_forecast/store-schema/store_training_dataset_raw/production_planning_dataset.csv'
+
+target: 'sales_unit_qty'
+group_ids:
+  - 'store_id'
+  - 'Item Slin'
+
+Features:
+  numerical:
+    # Transaction-level
+    - 'Gross_sales'
+    - 'avg_sell_price'
+    # Promotion
+    - 'promo_quantity'
+    - 'promo_amount'
+    # Production planning
+    - 'PRODUCTION_QUANTITY'
+    - 'HOLD_TIME'
+    - 'MIN_PRES'
+    - 'MAX_PRES'
+    - 'ALERT_LOOK_AHEAD_MIN'
+    - 'QUANTITY_LOOK_AHEAD_MIN'
+    - 'OPENING_PRES_FIXED'
+    - 'PRODUCTION_MULTIPLIER'
+    - 'FORECAST_WEIGHT_PERCENTAGE'
+    - 'OPENING_PRES_PREDICTIVE'
+    # Location
+    - 'Latitude'
+    - 'Longitude'
+    # Store operations
+    - 'Store_Hours_Per_Day'
+
+  date_time:
+    - 'transaction_timestamp'
+    - 'day_date'
+  date_time_features:
+    transaction_timestamp:
+      extract:
+        - 'hour'
+        - 'dayofweek'
+        - 'month'
+        - 'quarter'
+        - 'year'
+        - 'weekofyear'
+    day_date:
+      extract:
+        - 'dayofweek'
+        - 'month'
+        - 'dayofmonth'
+        - 'is_weekend'
+
+  # ── Binary (0/1 or Y/N) ─────────────────────────────────────────────────
+  binary:
+    - 'PERISHABLE'
+    - 'Flag_Delivery'
+    - 'self_checkout'
+    - 'Mobile_Checkout'
+    - 'Metro'
+    - 'Corner'
+    - 'snap_CA'
+    - 'snap_TX'
+    - 'snap_WI'
+    - 'Rest_Ops'
+    - 'Daylight_Saving_Indicator'
+    - 'product_active_flag'
+
+  tft_covariates:
+    # ── Static covariates (per item × store, never change) ───────────────────
+    static_categoricals:
+      - 'store_id'
+      - 'Item Slin'
+      - 'ITEM_NAME'
+      - 'ITEM_UNIT'
+      - 'HOLD_TIME_UNIT'
+      - 'ITEM_TYPE'
+      - 'Flow'
+      - 'cat_id'
+      - 'dept_id'
+      - 'State'
+      - 'City'
+      - 'County'
+      - 'DMA_Name'
+      - 'zone_code'
+      - 'super_zone'
+      - 'Operating_System'
+      - 'POS_Type'
+      - 'Flag_Delivery'
+      - 'self_checkout'
+      - 'Mobile_Checkout'
+      - 'Metro'
+      - 'Corner'
+      - 'PREDICTIVE_MODEL'
+      - 'ROUNDING'
+      - 'country_code'
+      - 'country_ops_code'
+      - 'country_ops_description'
+      - 'Rest_Ops'
+      - 'Daylight_Saving_Indicator'
+      - 'Operator_Changeover_Date'
+      - 'Store_Operating_Hours_Mon'
+      - 'Store_Operating_Hours_Tue'
+      - 'Store_Operating_Hours_Wed'
+      - 'Store_Operating_Hours_Thu'
+      - 'Store_Operating_Hours_Fri'
+      - 'Store_Operating_Hours_Sat'
+      - 'Store_Operating_Hours_Sun'
+    static_reals:
+      - 'PRODUCTION_QUANTITY'
+      - 'HOLD_TIME'
+      - 'MIN_PRES'
+      - 'MAX_PRES'
+      - 'ALERT_LOOK_AHEAD_MIN'
+      - 'QUANTITY_LOOK_AHEAD_MIN'
+      - 'PRODUCTION_MULTIPLIER'
+      - 'Latitude'
+      - 'Longitude'
+      - 'PERISHABLE'
+      - 'FORECAST_WEIGHT_PERCENTAGE'
+      - 'OPENING_PRES_PREDICTIVE'
+      - 'Store_Hours_Per_Day'
+    # ── Time-varying KNOWN covariates (known in advance at forecast time) ────
+    time_varying_known_categoricals:
+      - 'DAYPART_NAME'
+      - 'PERIOD_NAME'
+      - 'PRODUCTION_PERIOD_GROUP_NAME'
+      - 'DAYPART_DAYS'
+      - 'product_active_flag'
+      - 'eff_reg_start_date'
+      - 'eff_reg_end_date'
+      - 'LastChgDTM'
+      - 'weekday'
+      - 'Holidays'
+      - 'event_name_1'
+      - 'event_type_1'
+      - 'event_name_2'
+      - 'event_type_2'
+      - 'promotion_id'
+    time_varying_known_reals:
+      - 'month'
+      - 'wday'
+      - 'fiscal_month'
+      - 'fiscal_week'
+      - 'snap_CA'
+      - 'snap_TX'
+      - 'snap_WI'
+      - 'promo_amount'
+    # ── Time-varying UNKNOWN covariates (only known up to present) ───────────
+    time_varying_unknown_categoricals: [ ]
+    time_varying_unknown_reals:
+      - 'sales_unit_qty'        # TARGET — only known historically
+      - 'Gross_sales'
+      - 'avg_sell_price'
+      - 'promo_quantity'
+
+    transformations:
+      # ── Numerical scaling ────────────────────────────────────────────────────
+      numerical_scaling:
+        method: 'standard'        # options: standard, minmax, robust, log1p
+        columns:
+          - 'Gross_sales'
+          - 'avg_sell_price'
+          - 'promo_quantity'
+          - 'promo_amount'
+          - 'PRODUCTION_QUANTITY'
+          - 'HOLD_TIME'
+          - 'MIN_PRES'
+          - 'MAX_PRES'
+          - 'ALERT_LOOK_AHEAD_MIN'
+          - 'QUANTITY_LOOK_AHEAD_MIN'
+          - 'Latitude'
+          - 'Longitude'
+          - 'Store_Hours_Per_Day'
+          - 'OPENING_PRES_PREDICTIVE'
+      target_scaling:
+        method: 'log1p'           # log(1+x) for count data, helps with skew
+        column: 'sales_unit_qty'
+  categorical_encoding:
+    method: 'label'           # options: label, embedding (handled by TFT)
+    columns:
+      - 'ITEM_NAME'
+      - 'Item Slin'
+      - 'ITEM_UNIT'
+      - 'store_id'
+      - 'State'
+      - 'DAYPART_NAME'
+      - 'weekday'
+      - 'Holidays'
+      - 'event_name_1'
+      - 'event_type_1'
+      - 'event_name_2'
+      - 'event_type_2'
+      - 'promotion_id'
+      - 'DMA_Name'
+      - 'zone_code'
+      - 'cat_id'
+      - 'dept_id'
+      - 'Flow'
+      - 'HOLD_TIME_UNIT'
+      - 'PERIOD_NAME'
+      - 'PRODUCTION_PERIOD_GROUP_NAME'
+      - 'Operating_System'
+      - 'POS_Type'
+      - 'PREDICTIVE_MODEL'
+      - 'ROUNDING'
+      - 'DAYPART_DAYS'
+      - 'eff_reg_start_date'
+      - 'eff_reg_end_date'
+      - 'country_code'
+      - 'country_ops_code'
+      - 'country_ops_description'
+      - 'Operator_Changeover_Date'
+      - 'LastChgDTM'
+      - 'Store_Operating_Hours_Mon'
+      - 'Store_Operating_Hours_Tue'
+      - 'Store_Operating_Hours_Wed'
+      - 'Store_Operating_Hours_Thu'
+      - 'Store_Operating_Hours_Fri'
+      - 'Store_Operating_Hours_Sat'
+      - 'Store_Operating_Hours_Sun'
+    # ── Binary encoding (Y/N → 1/0) ─────────────────────────────────────────
+    binary_encoding:
+      map: { 'Y': 1, 'N': 0 }
+      columns:
+        - 'Flag_Delivery'
+        - 'self_checkout'
+        - 'Mobile_Checkout'
+        - 'Metro'
+        - 'Corner'
+        - 'Rest_Ops'
+        - 'Daylight_Saving_Indicator'
+        - 'product_active_flag'
+    # ── Null handling ────────────────────────────────────────────────────────
+    fill_na:
+      OPENING_PRES_FIXED: 0
+      event_name_1: 'No_Event'
+      event_type_1: 'No_Event'
+      event_name_2: 'No_Event'
+      event_type_2: 'No_Event'
+      Holidays: 'No_Holiday'
+      promo_amount: 0
+      promo_quantity: 0
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # COLUMNS TO DROP (redundant, constant, or internal-only)
+  # ═══════════════════════════════════════════════════════════════════════════════
+  drop_columns:
+    # Redundant with Item Slin / ITEM_NAME
+    - 'Item Name'
+    - 'ITEM_TREE'
+    - 'slc_item_number'
+    - 'noi_slin'
+    - 'promo_slin'
+    - 'selling_upc'
+    - 'upc'
+    - 'product_id'
+    - 'item_description'
+    - 'item_id'
+    # Redundant with day_date
+    - 'date'
+    - 'trans_sales_date_key'
+    - 'DAYPART_START'
+    - 'DAYPART_END'
+    # Low-value / noisy
+    - 'item_dimensions'
+    - 'product_hierarchy'
+    - 'manufacturer'
+    - 'Brand'
+    - 'description'
+    - 'address'
+    - 'Vicinity'
+    - 'Geography'
+    - 'market_desc'
+    - 'Super_Market_Description'
+    - 'store_ops_description'
+    - 'total_zone_description'
+    - 'super_zone_description'
+    - 'zone_name'
+    # Redundant grouping
+    - 'state_id'
+    - 'location_number'
+    - 'location_id'
+    - 'SPW_store_number'
+    - 'store_name'
+    - 'franchise_code'
+    - 'owner_code'
+    - 'Hierarchy_Level'
+    - 'DMA_Code'
+    - 'Super_Market'
+    - 'store_ops_code'
+    - 'total_zone_code'
+    - 'market_code'
+    - 'Time_Zone_Code'
+    - 'Retail_Minimum_Hours'
+    - 'Restaurant_Minimum_Hours'
+    # Calendar duplicates
+    - 'fiscal_year'
+    - 'calendar_week'
+    - 'wm_yr_wk'
+    - 'year'
+    - 'month'           # extracted from date_time_features instead
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # TRAINING PARAMETERS
+  # ═══════════════════════════════════════════════════════════════════════════════
+  training:
+    max_prediction_length: 7       # predict 7 days ahead
+    max_encoder_length: 30         # use 30 days of history
+    batch_size: 128
+    max_epochs: 50
+    learning_rate: 0.001
+    gradient_clip_val: 0.1
+    early_stopping_patience: 5
+    validation_split: 0.1
+    test_split: 0.1
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,35 @@
+# Environment files
+.env
+.env.*
+
+# IDE configs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.tox/
+.venv/
+venv/
+ENV/
+env/
+
+# Airflow / Pipeline local runs
+data-pipeline/logs/
+data-pipeline/airflow.db
+data-pipeline/airflow.cfg
+data-pipeline/unittests.cfg
