@@ -17,7 +17,7 @@ class DatasetCleaning:
         db_config=config['databricks']
         schemas=config['schemas']
         features=config['Features']
-        encoding=config['categorical_encoding']
+        encoding=features['categorical_encoding']
         source_location=config['training_data_location']['dataset']
         target_location=config['transformed_target_table']
         target_catalog=db_config['catalog']
