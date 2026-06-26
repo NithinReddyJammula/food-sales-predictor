@@ -4,13 +4,16 @@ version: '3.8'
 # In production, use managed Airflow (MWAA, Cloud Composer, etc.)
 
 x-airflow-common: &airflow-common
-  image: apache/airflow:2.8.0-python3.11
+  #image: apache/airflow:2.8.0-python3.11
+  build: .
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    AIRFLOW__CORE__TEST_CONNECTION: Enabled
     # Azure Data Lake
     AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT:-}
     AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY:-}
@@ -26,6 +29,7 @@ x-airflow-common: &airflow-common
     - ./dags:/opt/airflow/dags
     - ./scripts:/opt/airflow/scripts
     - ./config:/opt/airflow/config
+    - ./Feature_transformation:/opt/airflow/Feature_transformation
     - ../ml-model:/opt/ml-model
     - airflow-logs:/opt/airflow/logs
   depends_on:
