@@ -59,6 +59,6 @@ jobs:
         run: |
           databricks bundle deploy --target ${{ steps.env.outputs.target }}
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS-HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS-CLIENT-ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS-CLIENT-SECRET }}
