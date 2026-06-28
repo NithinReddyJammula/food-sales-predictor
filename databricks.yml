@@ -1,0 +1,11 @@
+resources:
+  jobs:
+    data-cleaning_job:
+      name: Data Cleaning
+      tasks:
+        - task_key: clean
+          spark_python_task:
+            python_file: Feature_transformation/Data-cleaning.py
+          cluster_id: 0527-054752-thnpzgrm
+
+
