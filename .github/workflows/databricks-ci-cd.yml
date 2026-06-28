@@ -12,6 +12,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  actions: read
 
 jobs:
   # CI Job: Validate the Databricks Asset Bundle configuration on PRs/MRs
