@@ -1,0 +1,28 @@
+bundle:
+  name: databricks-workspace-deployment
+
+targets:
+  # Development target (used locally or in dev branch validation)
+  development:
+    default: true
+    workspace:
+      root_path: /Shared/.bundle/dev/${bundle.name}
+
+  # Staging target (used for testing release candidates)
+  staging:
+    workspace:
+      root_path: /Shared/.bundle/staging/${bundle.name}
+
+  # Production target (deployed from main branch)
+  production:
+    workspace:
+      root_path: /Shared/.bundle/prod/${bundle.name}
+
+resources:
+  jobs:
+    example_job:
+      name: "[${bundle.target}] Example Databricks Asset Bundle Job"
+      tasks:
+        - task_key: hello_world
+          notebook_task:
+            notebook_path: ./src/hello_world.py
