@@ -11,7 +11,7 @@ resources:
             python_file: "data-pipeline/Feature_transformation/Data-cleaning.py"
           new_cluster:
             spark_version: "14.3.x-scala2.12"
-            node_type_id: "Standard_D3_v2"
+            node_type_id: "Standard_DC4as_v5"
             num_workers: 0  # Setting workers to 0 makes it a Single-Node cluster
             spark_conf:
               spark.databricks.cluster.profile: "singleNode"
