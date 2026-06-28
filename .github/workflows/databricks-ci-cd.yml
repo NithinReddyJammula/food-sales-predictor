@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Databricks CLI
-        uses: databricks/setup-cli@v0.2.1
+        uses: databricks/setup-cli@main
 
       - name: Determine Target Environment
         id: env
@@ -84,7 +84,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Databricks CLI
-        uses: databricks/setup-cli@v0.2.1
+        uses: databricks/setup-cli@main
 
       - name: Determine Target Environment
         id: env
