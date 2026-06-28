@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - release/*
 
 permissions:
   id-token: write
@@ -12,9 +11,9 @@ permissions:
   actions: read
 
 jobs:
-  # CI Job: Validate the Databricks Asset Bundle configuration on PRs/MRs
-  validate:
-    name: Validate Bundle
+  # Single job to validate and immediately deploy the bundle
+  ci-cd-pipeline:
+    name: Validate and Deploy Bundle
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -52,53 +51,9 @@ jobs:
           DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID }}
           DATABRICKS_CLIENT_SECRET: ${{ env.DATABRICKS_CLIENT_SECRET }}
 
-  # CD Job: Deploy the Bundle to the respective Databricks environment on MR merge
-  deploy:
-    name: Deploy Bundle
-    needs: validate
-    # Run only on push events (which occur when an MR/PR is merged into main or release/*)
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Databricks CLI
-        uses: databricks/setup-cli@v1.5.0
-
-      - name: Determine Target Environment
-        id: env
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "target=production" >> $GITHUB_OUTPUT
-          else
-            echo "target=staging" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Fetch Secrets from Azure Key Vault
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            DATABRICKS_HOST=$(az keyvault secret show --name "DATABRICKS-HOST" --vault-name "${{ secrets.KEYVAULT_NAME }}" --query value -o tsv)
-            DATABRICKS_CLIENT_ID=$(az keyvault secret show --name "DATABRICKS-CLIENT-ID" --vault-name "${{ secrets.KEYVAULT_NAME }}" --query value -o tsv)
-            DATABRICKS_CLIENT_SECRET=$(az keyvault secret show --name "DATABRICKS-CLIENT-SECRET" --vault-name "${{ secrets.KEYVAULT_NAME }}" --query value -o tsv)
-            echo "::add-mask::$DATABRICKS_HOST"
-            echo "::add-mask::$DATABRICKS_CLIENT_ID"
-            echo "::add-mask::$DATABRICKS_CLIENT_SECRET"
-            echo "DATABRICKS_HOST=$DATABRICKS_HOST" >> $GITHUB_ENV
-            echo "DATABRICKS_CLIENT_ID=$DATABRICKS_CLIENT_ID" >> $GITHUB_ENV
-            echo "DATABRICKS_CLIENT_SECRET=$DATABRICKS_CLIENT_SECRET" >> $GITHUB_ENV
-
       - name: Deploy Bundle
         run: |
-          databricks bundle deploy --target ${{ steps.env.outputs.target }}
+          databricks bundle deploy
         env:
           DATABRICKS_HOST: ${{ env.DATABRICKS_HOST }}
           DATABRICKS_CLIENT_ID: ${{ env.DATABRICKS_CLIENT_ID }}
