@@ -1,0 +1,83 @@
+bundle:
+  name: databricks-workspace-deployment
+
+targets:
+  # Development target (used locally or in dev branch validation)
+  development:
+    default: true
+    workspace:
+      host: https://adb-dev-workspace.azuredatabricks.net
+      root_path: /Shared/.bundle/dev/${bundle.name}
+
+  # Staging target (used for testing release candidates)
+  staging:
+    workspace:
+      host: https://adb-staging-workspace.azuredatabricks.net
+      root_path: /Shared/.bundle/staging/${bundle.name}
+
+  # Production target (deployed from main branch)
+  production:
+    workspace:
+      host: https://adb-prod-workspace.azuredatabricks.net
+      root_path: /Shared/.bundle/prod/${bundle.name}
+
+resources:
+  jobs:
+    data_cleaning_dag:
+      name: "[${bundle.target}] Data Cleaning Pipeline"
+      job_clusters:
+        - job_cluster_key: pipeline_cluster
+          new_cluster:
+            spark_version: 14.3.x-scala2.12
+            node_type_id: Standard_D3_v2
+            num_workers: 1
+            spark_conf:
+              spark.master: "local[*]"
+              spark.databricks.cluster.profile: "singleNode"
+            custom_tags:
+              ResourceClass: "SingleNode"
+      tasks:
+        - task_key: bronze_ingestion
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ./src/bronze_ingestion.py
+
+        - task_key: silver_cleaning
+          depends_on:
+            - task_key: bronze_ingestion
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ./src/silver_cleaning.py
+
+    data_transformation_dag:
+      name: "[${bundle.target}] Data Transformation Pipeline"
+      job_clusters:
+        - job_cluster_key: pipeline_cluster
+          new_cluster:
+            spark_version: 14.3.x-scala2.12
+            node_type_id: Standard_D3_v2
+            num_workers: 1
+            spark_conf:
+              spark.master: "local[*]"
+              spark.databricks.cluster.profile: "singleNode"
+            custom_tags:
+              ResourceClass: "SingleNode"
+      tasks:
+        - task_key: bronze_ingestion
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ./src/bronze_ingestion.py
+
+        - task_key: silver_cleaning
+          depends_on:
+            - task_key: bronze_ingestion
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ./src/silver_cleaning.py
+
+        - task_key: gold_aggregation
+          depends_on:
+            - task_key: silver_cleaning
+          job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ./src/gold_aggregation.py
