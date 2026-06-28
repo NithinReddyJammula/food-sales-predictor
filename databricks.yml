@@ -9,6 +9,14 @@ resources:
         - task_key: clean
           spark_python_task:
             python_file: "data-pipeline/Feature_transformation/Data-cleaning.py"
-          existing_cluster_id: "0527-054752-thnpzgrm"
-
+          new_cluster:
+            spark_version: "14.3.x-scala2.12"
+            node_type_id: "Standard_D3_v2"
+            num_workers: 0  
+            spark_conf:
+              spark.databricks.cluster.profile: "singleNode"
+              spark.master: "local[*]"
+            azure_attributes:
+              first_on_demand: 0
+              availability: "SPOT_WITH_FALLBACK_AZURE"
 
