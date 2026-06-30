@@ -1,5 +1,12 @@
 import logging
 import sys
+from pathlib import Path
+
+# Add data-pipeline directory to python path to resolve config package
+parent_dir = str(Path(__file__).resolve().parent.parent)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
 from typing import Dict, List, Tuple
 import yaml
 from pyspark.ml.feature import StringIndexer
