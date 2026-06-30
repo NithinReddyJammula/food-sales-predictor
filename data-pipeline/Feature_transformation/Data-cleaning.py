@@ -48,7 +48,7 @@ class DatasetCleaning:
             target_location = config['transformed_target_table']
             target_catalog = db_config['catalog']
             target_schema = schemas['base']
-            target_table = f'{target_catalog}.{target_schema}.{target_location}'
+            target_table = f"{target_catalog}.`{target_schema}`.{target_location}"
             app_name = db_config.get('app_name')
             spark = SparkSession.builder.appName(app_name).getOrCreate()
             logging.info(f'Loading raw dataset from {source_location}')
