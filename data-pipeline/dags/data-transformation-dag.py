@@ -22,12 +22,16 @@ with DAG(
     tags=['tft', 'gold_layer', 'forecasting']
 ) as dag:
 
+    workspace_path = os.getenv('DATABRICKS_WORKSPACE_PATH', '/Workspace/Users/2102c422-f75d-4b03-bb85-27784ee12c13/.bundle/food-sales-predictor/default/files')
+    python_file_path = f"{workspace_path}/data-pipeline/Feature_transformation/Data-Transformation.py"
+    config_file_path = f"{workspace_path}/data-pipeline/config/config.yaml"
+
     databricks_cluster_task = {
-        'existing_cluster_id': os.getenv('DATABRICKS_CLUSTER_ID', '0527-054752-thnpzgrm'),
+        'existing_cluster_id': os.getenv('DATABRICKS_CLUSTER_ID', '0630-020742-js27j99e'),
         'spark_python_task': {
-            'python_file': 'dbfs:/Workspace/Feature_transformation/Data-Transformation.py',
+            'python_file': python_file_path,
             'parameters': [
-                '--config', '/Workspace/Feature_transformation/config.yaml'
+                '--config', config_file_path
             ]
         },
         'libraries': [
