@@ -1,0 +1,50 @@
+name: Create Pull Request
+
+on:
+  workflow_dispatch:
+    inputs:
+      head_branch:
+        description: 'Branch containing your changes (defaults to the selected branch)'
+        required: false
+        default: ''
+      base_branch:
+        description: 'Branch to merge changes into'
+        required: true
+        default: 'main'
+      pr_title:
+        description: 'Title of the Pull Request'
+        required: true
+        default: 'feat: merge updates'
+      pr_body:
+        description: 'Description of the Pull Request'
+        required: false
+        default: 'This Pull Request was raised automatically using the GitHub Actions workflow.'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use user-specified head branch, or default to the branch this workflow is run on
+          HEAD_BRANCH="${{ inputs.head_branch }}"
+          if [ -z "$HEAD_BRANCH" ]; then
+            HEAD_BRANCH="${{ github.ref_name }}"
+          fi
+          
+          echo "Creating PR from branch '$HEAD_BRANCH' into '${{ inputs.base_branch }}'..."
+          
+          gh pr create \
+            --title "${{ inputs.pr_title }}" \
+            --body "${{ inputs.pr_body }}" \
+            --base "${{ inputs.base_branch }}" \
+            --head "$HEAD_BRANCH"
