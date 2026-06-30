@@ -126,7 +126,9 @@ if __name__=="__main__":
     Observability.initialize()
     tracer=Observability.get_tracer(__name__)
     parser=argparse.ArgumentParser(description='TFT Data Cleaning Pipeline')
-    parser.add_argument('--config',type=str,required=True)
+    # Default to config/config.yaml relative to data-pipeline/
+    default_config_path = str(script_dir.parent / 'config/config.yaml')
+    parser.add_argument('--config', type=str, default=default_config_path)
     args=parser.parse_args()
     cleaner=DatasetCleaning(tracer)
     cleaner.clean_data(args.config)
