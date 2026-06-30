@@ -16,6 +16,8 @@ resources:
             spark_conf:
               spark.databricks.cluster.profile: "singleNode"
               spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: "SingleNode"
             azure_attributes:
               first_on_demand: 1  # 👈 Changed from 0 to 1 to keep the driver on-demand
               availability: "SPOT_WITH_FALLBACK_AZURE"
