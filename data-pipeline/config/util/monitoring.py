@@ -17,7 +17,9 @@ class Observability:
             return
         endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         if not endpoint:
-            raise ValueError("OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set.")
+            logging.warning("OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set. Telemetry export is disabled.")
+            Observability._initialized = True
+            return
         log_provider = LoggerProvider()
         _logs.set_logger_provider(log_provider)
         log_exporter = OTLPLogExporter(endpoint=endpoint)

@@ -29,7 +29,12 @@ with DAG(
             'parameters': [
                 '--config', '/Workspace/Feature_transformation/config.yaml'
             ]
-        }
+        },
+        'libraries': [
+            {'pypi': {'package': 'PyYAML==6.0.1'}},
+            {'pypi': {'package': 'hyperdx-opentelemetry==1.0.1'}},
+            {'pypi': {'package': 'opentelemetry-exporter-otlp'}}
+        ]
     }
 
     run_data_transformation = DatabricksSubmitRunOperator(
