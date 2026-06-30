@@ -1,19 +1,21 @@
 version: '3.8'
 
-# Docker Compose for local Airflow development.
-# In production, use managed Airflow (MWAA, Cloud Composer, etc.)
-
 x-airflow-common: &airflow-common
   #image: apache/airflow:2.8.0-python3.11
   build: .
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
     AIRFLOW__CORE__TEST_CONNECTION: Enabled
+    # Databricks
+    DATABRICKS_HOST: ${DATABRICKS_HOST:-}
+    DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
+    DATABRICKS_CLUSTER_ID: ${DATABRICKS_CLUSTER_ID:-}
+    AIRFLOW_CONN_DATABRICKS_DEFAULT: databricks://@${DATABRICKS_HOST:-}?token=${DATABRICKS_TOKEN:-}
     # Azure Data Lake
     AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT:-}
     AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY:-}
@@ -40,15 +42,17 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
       interval: 10s
       retries: 5
+    
+
 
   airflow-init:
     <<: *airflow-common
@@ -58,8 +62,8 @@ services:
       - |
         airflow db init
         airflow users create \
-          --username admin \
-          --password admin \
+          --username ${AIRFLOW_ADMIN_USER:-admin} \
+          --password ${AIRFLOW_ADMIN_PASSWORD:-admin} \
           --firstname Admin \
           --lastname User \
           --role Admin \

@@ -6,6 +6,7 @@ from pyspark.ml.feature import StringIndexer
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
 
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(message)s',
@@ -22,8 +23,8 @@ class DataTransformation:
     def load_config(self, config_path: str) -> Dict:
         logger.info('Loading the Configuration File..')
         try:
-            with open(config_path, 'r') as file:
-                return yaml.safe_load(file)
+            from config.util.azure_config import load_config as load_interpolated_config
+            return load_interpolated_config(config_path)
         except Exception as e:
             logger.error(f'Error loading configuration file from {config_path}: {e}')
             raise e
@@ -172,3 +173,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     transformer = DataTransformation(args.config)
     transformer.execute_pipeline()
+
+
+
+
+
+
+
+

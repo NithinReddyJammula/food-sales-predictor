@@ -1,3 +1,4 @@
+import os
 from datetime import datetime,timedelta
 from airflow import DAG
 from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
@@ -19,4 +20,4 @@ with DAG(dag_id='tft_fresh_food_data_cleaning',default_args=default_args,
     run_data_cleaning = DatabricksRunNowOperator(
         task_id="execute_spark_cleaning_pipeline",
         databricks_conn_id="databricks_default",
-        job_id=495996754923268)
+        job_id=int(os.getenv('DATABRICKS_JOB_ID', '495996754923268')))
