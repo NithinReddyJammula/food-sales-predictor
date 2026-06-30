@@ -3,7 +3,19 @@ import sys
 from pathlib import Path
 
 # Add data-pipeline directory to python path to resolve config package
-parent_dir = str(Path(__file__).resolve().parent.parent)
+try:
+    script_dir = Path(__file__).resolve().parent
+except NameError:
+    import inspect
+    import os
+    frame = inspect.currentframe()
+    co_filename = frame.f_code.co_filename if frame else None
+    if co_filename and not co_filename.startswith('<'):
+        script_dir = Path(co_filename).resolve().parent
+    else:
+        script_dir = Path(os.getcwd())
+
+parent_dir = str(script_dir.parent)
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
