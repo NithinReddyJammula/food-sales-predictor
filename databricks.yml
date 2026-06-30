@@ -1,6 +1,11 @@
 bundle:
   name: food-sales-predictor
 
+variables:
+  DATABRICKS_CLUSTER_ID:
+    description: "The cluster ID to run tasks on"
+    default: "0630-020742-js27j99e"
+
 resources:
   jobs:
     data-cleaning_job:
@@ -12,15 +17,4 @@ resources:
           libraries:
             - pypi:
                 package: "PyYAML==6.0.1"
-          new_cluster:
-            spark_version: "14.3.x-scala2.12"
-            node_type_id: "Standard_DC4as_v5"
-            num_workers: 0  # Setting workers to 0 makes it a Single-Node cluster
-            spark_conf:
-              spark.databricks.cluster.profile: "singleNode"
-              spark.master: "local[*]"
-            custom_tags:
-              ResourceClass: "SingleNode"
-            azure_attributes:
-              first_on_demand: 1  # 👈 Changed from 0 to 1 to keep the driver on-demand
-              availability: "SPOT_WITH_FALLBACK_AZURE"
+          existing_cluster_id: "${var.DATABRICKS_CLUSTER_ID}"
