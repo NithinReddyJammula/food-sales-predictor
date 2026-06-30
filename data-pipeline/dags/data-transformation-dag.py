@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.providers.databricks.operators.databricks import DatabricksSubmitRunOperator
@@ -22,7 +23,7 @@ with DAG(
 ) as dag:
 
     databricks_cluster_task = {
-        'existing_cluster_id': '0527-054752-thnpzgrm',
+        'existing_cluster_id': os.getenv('DATABRICKS_CLUSTER_ID', '0527-054752-thnpzgrm'),
         'spark_python_task': {
             'python_file': 'dbfs:/Workspace/Feature_transformation/Data-Transformation.py',
             'parameters': [

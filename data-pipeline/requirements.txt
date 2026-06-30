@@ -1,6 +1,7 @@
 # Core Architecture Components
 apache-airflow[azure,amazon]==2.8.0
 psycopg2-binary>=2.9.0
+PyYAML==6.0.1
 
 # Databricks Orchestration
 apache-airflow-providers-databricks>=6.0.0
@@ -10,3 +11,7 @@ apache-airflow-providers-microsoft-azure>=8.0.0
 azure-storage-blob>=12.19.0
 azure-storage-file-datalake>=12.14.0
 azure-identity>=1.15.0
+
+#monitoring
+hyperdx-opentelemetry==1.0.1
+langfuse

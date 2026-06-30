@@ -1,8 +1,22 @@
 databricks:
-  host: "https://adb-7405612883105762.2.azuredatabricks.net"
+  host: "https://${DATABRICKS_HOST}"
   catalog: 'food_sales_forecast'
-  cluster-id: '0527-054752-thnpzgrm'
+  cluster-id: "${DATABRICKS_CLUSTER_ID}"
   app-name: 'training_dataset_cleaning'
+
+monitoring:
+  observability:
+    service_name: food-sales-predictor
+    environment: dev
+    components:
+      dags: airflow
+      data_pipeline: data-pipeline
+      feature_transformation: feature_transformation
+      ml_model: model_training
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      protocol: http/protobuf
+    sampling_ratio: 0.1
 
 schemas:
   base: 'store-schema'
