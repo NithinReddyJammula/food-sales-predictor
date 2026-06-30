@@ -111,9 +111,12 @@ class DatasetCleaning:
                     df = df.na.fill(default_string_fills)
 
                 logging.info(f'Writing clean data to Databricks Unity Catalog: {target_table}')
-                df.write.format('delta').mode('overwrite').option('overwriteSchema', 'true').option(
-                    'delta.autooptimize.optimizeWrite', 'true').option("delta.autoOptimize.autoCompact",
-                                                                       "true").saveAsTable(target_table)
+                df.write.format('delta').mode('overwrite') \
+                    .option('overwriteSchema', 'true') \
+                    .option('delta.columnMapping.mode', 'name') \
+                    .option('delta.autooptimize.optimizeWrite', 'true') \
+                    .option('delta.autoOptimize.autoCompact', 'true') \
+                    .saveAsTable(target_table)
                 logging.info("Data cleaning stage completed successfully.")
 
 

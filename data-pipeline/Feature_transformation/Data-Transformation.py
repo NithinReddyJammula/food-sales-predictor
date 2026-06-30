@@ -180,8 +180,9 @@ class DataTransformation:
         df_transformed.write.format('delta') \
             .mode('overwrite') \
             .option('overwriteSchema', 'true') \
+            .option('delta.columnMapping.mode', 'name') \
             .option('delta.autooptimize.optimizeWrite', 'true') \
-            .option("delta.autoOptimize.autoCompact", "true") \
+            .option('delta.autoOptimize.autoCompact', 'true') \
             .saveAsTable(target_uri)
         logger.info("Data transformation stage completed successfully.")
 
