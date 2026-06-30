@@ -32,7 +32,8 @@ with DAG(
         },
         'libraries': [
             {'pypi': {'package': 'PyYAML==6.0.1'}},
-            {'pypi': {'package': 'hyperdx-opentelemetry==1.0.1'}},
+            {'pypi': {'package': 'opentelemetry-api'}},
+            {'pypi': {'package': 'opentelemetry-sdk'}},
             {'pypi': {'package': 'opentelemetry-exporter-otlp'}}
         ]
     }
