@@ -5,6 +5,12 @@ variables:
   DATABRICKS_CLUSTER_ID:
     description: "The cluster ID to run tasks on"
     default: "0630-020742-js27j99e"
+  OTEL_EXPORTER_OTLP_ENDPOINT:
+    description: "OpenTelemetry OTLP endpoint"
+    default: "https://in-otel.hyperdx.io"
+  OTEL_EXPORTER_OTLP_HEADERS:
+    description: "OpenTelemetry headers (e.g. authorization=<key>)"
+    default: ""
 
 resources:
   jobs:
