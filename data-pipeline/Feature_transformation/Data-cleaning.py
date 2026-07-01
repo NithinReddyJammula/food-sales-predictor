@@ -53,7 +53,8 @@ class DatasetCleaning:
             spark = SparkSession.builder.appName(app_name).getOrCreate()
             logging.info(f'Loading raw dataset from {source_location}')
             df_raw = spark.read.format("csv").option('header', True).option('inferSchema', 'true').load(source_location)
-            drop_columns = [col for col in config.get('drop_columns', []) if col in df_raw.columns]
+            config_drop_columns = features.get('drop_columns', [])
+            drop_columns = [col for col in config_drop_columns if col in df_raw.columns]
             df = df_raw.drop(*drop_columns)
             categorical_cols = encoding.get('columns', [])
             for col_name in categorical_cols:
