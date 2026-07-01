@@ -219,6 +219,7 @@ Features:
           - 'Longitude'
           - 'Store_Hours_Per_Day'
           - 'OPENING_PRES_PREDICTIVE'
+          - 'OPENING_PRES_FIXED'
           - 'Retail_Minimum_Hours'
           - 'Restaurant_Minimum_Hours'
           - 'snap_CA'
