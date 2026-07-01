@@ -27,8 +27,9 @@ class Observability:
                     os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = endpoint
                 if headers:
                     os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = headers
-            except Exception:
-                pass
+            except Exception as e:
+                import traceback
+                print(f"OTLP config fallback failed: {e}\n{traceback.format_exc()}", file=sys.stderr)
             endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
         if not endpoint:
