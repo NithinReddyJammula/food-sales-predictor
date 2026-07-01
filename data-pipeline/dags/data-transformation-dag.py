@@ -34,6 +34,10 @@ with DAG(
                 '--config', config_file_path
             ]
         },
+        'spark_env_vars': {
+            'OTEL_EXPORTER_OTLP_ENDPOINT': os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'https://in-otel.hyperdx.io'),
+            'OTEL_EXPORTER_OTLP_HEADERS': os.getenv('OTEL_EXPORTER_OTLP_HEADERS', '')
+        },
         'libraries': [
             {'pypi': {'package': 'PyYAML==6.0.1'}},
             {'pypi': {'package': 'opentelemetry-api'}},

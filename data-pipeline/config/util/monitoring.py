@@ -17,6 +17,21 @@ class Observability:
             return
         endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         if not endpoint:
+            try:
+                from config.util.azure_config import load_config
+                cfg = load_config()
+                otel_cfg = cfg.get('monitoring', {}).get('observability', {}).get('otlp', {})
+                endpoint = otel_cfg.get('endpoint')
+                headers = otel_cfg.get('headers')
+                if endpoint:
+                    os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = endpoint
+                if headers:
+                    os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = headers
+            except Exception:
+                pass
+            endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+        if not endpoint:
             logging.warning("OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set. Telemetry export is disabled.")
             Observability._initialized = True
             return

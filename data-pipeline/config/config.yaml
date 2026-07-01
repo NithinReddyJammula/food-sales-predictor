@@ -14,7 +14,8 @@ monitoring:
       feature_transformation: feature_transformation
       ml_model: model_training
     otlp:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT}"
+      headers: "${OTEL_EXPORTER_OTLP_HEADERS}"
       protocol: http/protobuf
     sampling_ratio: 0.1
 
