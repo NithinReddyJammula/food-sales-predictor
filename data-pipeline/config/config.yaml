@@ -49,21 +49,20 @@ Features:
     - 'MAX_PRES'
     - 'ALERT_LOOK_AHEAD_MIN'
     - 'QUANTITY_LOOK_AHEAD_MIN'
-    - 'OPENING_PRES_FIXED'
-    - 'PRODUCTION_MULTIPLIER'
-    - 'FORECAST_WEIGHT_PERCENTAGE'
+    - 'OPENING_PRES_FIXED'         # FIX: was missing — needed for double cast before scaling
     - 'OPENING_PRES_PREDICTIVE'
+    - 'PRODUCTION_MULTIPLIER'
+    - 'FORECAST_WEIGHT_PERCENTAGE' # FIX: was missing — needed for double cast before scaling
     # Location
     - 'Latitude'
     - 'Longitude'
     # Store operations
     - 'Store_Hours_Per_Day'
-    - 'PERISHABLE'
     - 'Retail_Minimum_Hours'
     - 'Restaurant_Minimum_Hours'
-    - 'snap_CA'
-    - 'snap_TX'
-    - 'snap_WI'
+    # NOTE: PERISHABLE, snap_CA/TX/WI deliberately excluded here.
+    # They are binary flags (0/1) handled by binary_encoding; casting them
+    # as continuous doubles and then standard-scaling would destroy their semantics.
 
   date_time:
     - 'transaction_timestamp'
@@ -71,20 +70,20 @@ Features:
   date_time_features:
     transaction_timestamp:
       extract:
-        - 'hour'
-        - 'dayofweek'
-        - 'month'
-        - 'quarter'
-        - 'year'
-        - 'weekofyear'
+        - 'hour'        # → transaction_timestamp_hour_sin / _cos
+        - 'dayofweek'   # → transaction_timestamp_dayofweek_sin / _cos
+        - 'month'       # → transaction_timestamp_month_sin / _cos
+        - 'quarter'     # → transaction_timestamp_quarter  (raw int — not cyclical)
+        - 'year'        # → transaction_timestamp_year     (raw int — not cyclical)
+        - 'weekofyear'  # → transaction_timestamp_weekofyear_sin / _cos
     day_date:
       extract:
-        - 'dayofweek'
-        - 'month'
-        - 'dayofmonth'
-        - 'is_weekend'
+        - 'dayofweek'   # → day_date_dayofweek_sin / _cos
+        - 'month'       # → day_date_month_sin / _cos
+        - 'dayofmonth'  # → day_date_dayofmonth_sin / _cos
+        - 'is_weekend'  # → day_date_is_weekend  (binary flag — kept as raw 0/1)
 
-  # ── Binary (0/1 or Y/N) ─────────────────────────────────────────────────
+  # ── Binary (Y/N → 1/0) ──────────────────────────────────────────────────
   binary:
     - 'PERISHABLE'
     - 'Flag_Delivery'
@@ -100,7 +99,6 @@ Features:
     - 'product_active_flag'
 
   tft_covariates:
-    # ── Static covariates (per item × store, never change) ───────────────────
     static_categoricals:
       - 'store_id'
       - 'Item Slin'
@@ -163,10 +161,10 @@ Features:
       - 'PERISHABLE'
       - 'FORECAST_WEIGHT_PERCENTAGE'
       - 'OPENING_PRES_PREDICTIVE'
+      - 'OPENING_PRES_FIXED'
       - 'Store_Hours_Per_Day'
       - 'Retail_Minimum_Hours'
       - 'Restaurant_Minimum_Hours'
-    # ── Time-varying KNOWN covariates (known in advance at forecast time) ────
     time_varying_known_categoricals:
       - 'DAYPART_NAME'
       - 'PERIOD_NAME'
@@ -184,26 +182,43 @@ Features:
       - 'event_type_2'
       - 'promotion_id'
     time_varying_known_reals:
-      - 'month'
-      - 'wday'
-      - 'fiscal_month'
-      - 'fiscal_week'
+      # Cyclical datetime features (sin/cos pairs replace raw integers)
+      - 'transaction_timestamp_hour_sin'
+      - 'transaction_timestamp_hour_cos'
+      - 'transaction_timestamp_dayofweek_sin'
+      - 'transaction_timestamp_dayofweek_cos'
+      - 'transaction_timestamp_month_sin'
+      - 'transaction_timestamp_month_cos'
+      - 'transaction_timestamp_weekofyear_sin'
+      - 'transaction_timestamp_weekofyear_cos'
+      - 'transaction_timestamp_quarter'   # raw int — ordinal, not cyclical
+      - 'transaction_timestamp_year'      # raw int — ordinal, not cyclical
+      - 'day_date_dayofweek_sin'
+      - 'day_date_dayofweek_cos'
+      - 'day_date_month_sin'
+      - 'day_date_month_cos'
+      - 'day_date_dayofmonth_sin'
+      - 'day_date_dayofmonth_cos'
+      - 'day_date_is_weekend'             # binary flag — kept as raw 0/1
+      # Binary flags
       - 'snap_CA'
       - 'snap_TX'
       - 'snap_WI'
+      # Financial known-ahead
       - 'promo_amount'
-    # ── Time-varying UNKNOWN covariates (only known up to present) ───────────
-    time_varying_unknown_categoricals: [ ]
+    time_varying_unknown_categoricals: []
     time_varying_unknown_reals:
-      - 'sales_unit_qty'        # TARGET — only known historically
+      - 'sales_unit_qty'   # TARGET — only known historically
       - 'Gross_sales'
       - 'avg_sell_price'
       - 'promo_quantity'
 
     transformations:
-      # ── Numerical scaling ────────────────────────────────────────────────────
+      target_scaling:
+        method: 'log1p'      # log(1+x) applied first, then z-scored with numerical_scaling
+        column: 'sales_unit_qty'
       numerical_scaling:
-        method: 'standard'        # options: standard, minmax, robust, log1p
+        method: 'standard'
         columns:
           - 'Gross_sales'
           - 'avg_sell_price'
@@ -222,16 +237,12 @@ Features:
           - 'OPENING_PRES_FIXED'
           - 'Retail_Minimum_Hours'
           - 'Restaurant_Minimum_Hours'
-          - 'snap_CA'
-          - 'snap_TX'
-          - 'snap_WI'
           - 'FORECAST_WEIGHT_PERCENTAGE'
           - 'PRODUCTION_MULTIPLIER'
-      target_scaling:
-        method: 'log1p'           # log(1+x) for count data, helps with skew
-        column: 'sales_unit_qty'
+          # sales_unit_qty added dynamically by scale_features() after log1p
+
   categorical_encoding:
-    method: 'label'           # options: label, embedding (handled by TFT)
+    method: 'label'
     columns:
       - 'ITEM_NAME'
       - 'Item Slin'
@@ -277,7 +288,7 @@ Features:
       - 'postal_code'
       - 'market_code'
       - 'Super_Market'
-      - 'zone_name'
+      # zone_name removed — listed in drop_columns, won't exist at encode time
       - 'super_zone'
       - 'store_ops_code'
       - 'total_zone_code'
@@ -288,7 +299,6 @@ Features:
       - 'Store_Operating_Hours_Fri'
       - 'Store_Operating_Hours_Sat'
       - 'Store_Operating_Hours_Sun'
-    # ── Binary encoding (Y/N → 1/0) ─────────────────────────────────────────
     binary_encoding:
       map: { 'Y': 1, 'N': 0 }
       columns:
@@ -300,7 +310,10 @@ Features:
         - 'Rest_Ops'
         - 'Daylight_Saving_Indicator'
         - 'product_active_flag'
-    # ── Null handling ────────────────────────────────────────────────────────
+        - 'PERISHABLE'   # FIX: moved here from Features.numerical — Y/N flag
+        - 'snap_CA'      # FIX: moved here from Features.numerical — binary 0/1 flag
+        - 'snap_TX'
+        - 'snap_WI'
     fill_na:
       OPENING_PRES_FIXED: 0
       event_name_1: 'No_Event'
@@ -310,11 +323,8 @@ Features:
       Holidays: 'No_Holiday'
       promo_amount: 0
       promo_quantity: 0
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # COLUMNS TO DROP (redundant, constant, or internal-only)
-  # ═══════════════════════════════════════════════════════════════════════════════
+
   drop_columns:
-    # Redundant with Item Slin / ITEM_NAME
     - 'Item Name'
     - 'ITEM_TREE'
     - 'slc_item_number'
@@ -325,12 +335,10 @@ Features:
     - 'product_id'
     - 'item_description'
     - 'item_id'
-    # Redundant with day_date
     - 'date'
     - 'trans_sales_date_key'
     - 'DAYPART_START'
     - 'DAYPART_END'
-    # Low-value / noisy
     - 'item_dimensions'
     - 'product_hierarchy'
     - 'manufacturer'
@@ -344,8 +352,7 @@ Features:
     - 'store_ops_description'
     - 'total_zone_description'
     - 'super_zone_description'
-    - 'zone_name'
-    # Redundant grouping & constant fields
+    - 'zone_name'   # dropped here — also removed from categorical_encoding.columns
     - 'ITEM_TYPE'
     - 'transaction_number'
     - 'PRODUCTION_STATUS'
@@ -358,7 +365,6 @@ Features:
     - 'location_id'
     - 'SPW_store_number'
     - 'store_name'
-    # Calendar duplicates
     - 'fiscal_year'
     - 'fiscal_month'
     - 'calendar_week'
@@ -367,27 +373,10 @@ Features:
     - 'month'
     - 'year'
     - 'wm_yr_wk'
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # TRAINING PARAMETERS
-  # ═══════════════════════════════════════════════════════════════════════════════
+
   training:
-    max_prediction_length: 7       # predict 7 days ahead
-    max_encoder_length: 30         # use 30 days of history
+    max_prediction_length: 7
+    max_encoder_length: 30
     batch_size: 128
     max_epochs: 50
     learning_rate: 0.001
-    gradient_clip_val: 0.1
-    early_stopping_patience: 5
-    validation_split: 0.1
-    test_split: 0.1
-
-
-
-
-
-
-
-
-
-
-

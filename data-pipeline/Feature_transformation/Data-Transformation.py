@@ -24,6 +24,7 @@ import yaml
 from pyspark.ml.feature import StringIndexer
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
+import math
 
 
 logging.basicConfig(
@@ -32,6 +33,17 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger("TFT-Transformation-Pipeline")
+
+# Cyclical period bounds for sin/cos encoding.
+# Any extracted component listed here will be encoded as two new columns
+# (<col>_sin, <col>_cos) instead of keeping the raw integer.
+CYCLICAL_PERIODS = {
+    'hour':        24,
+    'dayofweek':    7,
+    'month':       12,
+    'weekofyear':  52,
+    'dayofmonth':  31,
+}
 
 class DataTransformation:
     def __init__(self, config_path):
@@ -73,34 +85,71 @@ class DataTransformation:
         return source_uri, target_uri
 
     def extract_datetime_features(self, df: DataFrame) -> DataFrame:
-        """Extracts high-fidelity cyclical calendar variations for Deep Learning attention blocks."""
+        """
+        Extracts calendar features from datetime columns and applies cyclical
+        (sin/cos) encoding to periodic components so that the TFT attention
+        blocks can recognise proximity across period boundaries
+        (e.g. hour 23 ≈ hour 0, December ≈ January).
+
+        Raw integer extracts are retained alongside their sin/cos pairs only
+        for non-cyclical components (quarter, year). All cyclical components
+        produce *only* the sin/cos pair — keeping the raw integer would give
+        the model a redundant and ordinally-misleading signal.
+        """
         logger.info("Executing calendar and operational timestamp token feature extraction...")
         dt_configs = self.config['Features'].get('date_time_features', {})
 
         for base_col, config in dt_configs.items():
             if base_col not in df.columns:
-                logger.warning(f'Configured base date timestamp column {base_col} missing from target dataframe. Skipping.')
+                logger.warning(
+                    f'Configured base date timestamp column {base_col} missing '
+                    f'from target dataframe. Skipping.'
+                )
                 continue
 
             extract_targets = config.get('extract', [])
             for target in extract_targets:
-                new_col_name = f'{base_col}_{target}'
+                raw_col = f'{base_col}_{target}'
+
+                # ── Step 1: extract the raw integer component ────────────────
                 if target == 'hour':
-                    df = df.withColumn(new_col_name, F.hour(F.col(base_col)))
+                    df = df.withColumn(raw_col, F.hour(F.col(base_col)))
                 elif target == 'dayofweek':
-                    df = df.withColumn(new_col_name, F.dayofweek(F.col(base_col)))
+                    df = df.withColumn(raw_col, F.dayofweek(F.col(base_col)))
                 elif target == 'dayofmonth':
-                    df = df.withColumn(new_col_name, F.dayofmonth(F.col(base_col)))
+                    df = df.withColumn(raw_col, F.dayofmonth(F.col(base_col)))
                 elif target == 'month':
-                    df = df.withColumn(new_col_name, F.month(F.col(base_col)))
+                    df = df.withColumn(raw_col, F.month(F.col(base_col)))
                 elif target == 'quarter':
-                    df = df.withColumn(new_col_name, F.quarter(F.col(base_col)))
+                    df = df.withColumn(raw_col, F.quarter(F.col(base_col)))
                 elif target == 'year':
-                    df = df.withColumn(new_col_name, F.year(F.col(base_col)))
+                    df = df.withColumn(raw_col, F.year(F.col(base_col)))
                 elif target == 'weekofyear':
-                    df = df.withColumn(new_col_name, F.weekofyear(F.col(base_col)))
+                    df = df.withColumn(raw_col, F.weekofyear(F.col(base_col)))
                 elif target in ('isweekend', 'is_weekend'):
-                    df = df.withColumn(new_col_name, F.when(F.dayofweek(F.col(base_col)).isin([1, 7]), 1).otherwise(0))
+                    # Binary flag — no cyclical encoding needed.
+                    df = df.withColumn(
+                        raw_col,
+                        F.when(F.dayofweek(F.col(base_col)).isin([1, 7]), 1).otherwise(0)
+                    )
+
+                # ── Step 2: apply cyclical sin/cos encoding where applicable ─
+                if target in CYCLICAL_PERIODS:
+                    period = CYCLICAL_PERIODS[target]
+                    logger.info(
+                        f"Applying cyclical encoding to {raw_col} (period={period})."
+                    )
+                    df = df.withColumn(
+                        f'{raw_col}_sin',
+                        F.sin(2 * math.pi * F.col(raw_col) / period)
+                    ).withColumn(
+                        f'{raw_col}_cos',
+                        F.cos(2 * math.pi * F.col(raw_col) / period)
+                    )
+                    # Drop the raw integer so the model only sees the
+                    # continuous cyclical representation.
+                    df = df.drop(raw_col)
+
         return df
 
     def extract_binary_features(self, df: DataFrame) -> DataFrame:
@@ -114,40 +163,87 @@ class DataTransformation:
         false_target = 0 if true_target == 1 else 1
         for col_name in columns:
             if col_name in df.columns:
-                df = df.withColumn(col_name, F.when(F.upper(F.trim(F.col(col_name))) == str(true_val).upper(), true_target).otherwise(false_target))
+                df = df.withColumn(
+                    col_name,
+                    F.when(
+                        F.upper(F.trim(F.col(col_name))) == str(true_val).upper(),
+                        true_target
+                    ).otherwise(false_target)
+                )
         return df
 
     def scale_features(self, df: DataFrame) -> DataFrame:
         """
         Executes distributed feature normalization.
-        Uses standard scaling for continuous features and log1p transformation
-        on zero-inflated retail unit quantities to stabilize variance.
+
+        Execution order:
+          1. log1p on the target (sales_unit_qty) to stabilise its skewed
+             distribution, then immediately z-score it so it lives on the
+             same scale as every other real-valued covariate.
+          2. Standard (z-score) scaling on all remaining continuous features
+             listed under numerical_scaling.columns — excluding binary flags
+             (PERISHABLE, snap_*) which must stay as 0/1 integers.
         """
         covariates = self.config['Features'].get('tft_covariates', {})
         transformations = covariates.get('transformations', {})
+
+        # ── 1. Target: log1p then z-score ────────────────────────────────────
         target_config = transformations.get('target_scaling', {})
         target_col = target_config.get('column')
         if target_col and target_col in df.columns and target_config.get('method') == 'log1p':
-            logger.info(f'Applying Logarithmic variant distribution stabilization (log1p) to skewed target vector: {target_col}')
+            logger.info(f'Applying log1p to target column: {target_col}')
             df = df.withColumn(target_col, F.log1p(F.col(target_col).cast('double')))
+
+        # ── 2. Standard scaling for continuous features ───────────────────────
+        # Binary flag columns must NOT be standard-scaled; doing so destroys
+        # the 0/1 semantics that the TFT embedding layers depend on.
+        binary_cols = set(
+            self.config['Features']['categorical_encoding']
+            .get('binary_encoding', {})
+            .get('columns', [])
+        )
+        # snap_* and PERISHABLE are binary flags even though they may appear
+        # elsewhere in the config — guard them explicitly.
+        binary_cols.update({'snap_CA', 'snap_TX', 'snap_WI', 'PERISHABLE'})
+
         numeric_config = transformations.get('numerical_scaling', {})
         if numeric_config and numeric_config.get('method') == 'standard':
-            scaling_cols = [c for c in numeric_config.get('columns', []) if c in df.columns]
-            logger.info(f"Computing distributed statistics (Mean, StdDev) for {len(scaling_cols)} features...")
+            # Build the full scaling list: configured columns PLUS the target
+            # (post-log1p), minus any binary flags.
+            configured_cols = numeric_config.get('columns', [])
+            scaling_candidate = configured_cols + ([target_col] if target_col else [])
+            scaling_cols = [
+                c for c in scaling_candidate
+                if c in df.columns and c not in binary_cols
+            ]
+            # Deduplicate while preserving order.
+            seen = set()
+            scaling_cols = [c for c in scaling_cols if not (c in seen or seen.add(c))]
+
+            logger.info(
+                f"Computing distributed statistics (Mean, StdDev) for "
+                f"{len(scaling_cols)} features..."
+            )
             agg_exprs = []
             for c in scaling_cols:
                 agg_exprs.append(F.mean(c).alias(f'{c}_avg'))
                 agg_exprs.append(F.stddev(c).alias(f'{c}_std'))
             stats = df.groupBy().agg(*agg_exprs).collect()[0]
+
             for c in scaling_cols:
                 mean_val = stats[f'{c}_avg']
-                std_val = stats[f'{c}_std']
-
+                std_val  = stats[f'{c}_std']
                 if std_val and std_val != 0:
-                    df = df.withColumn(c, (F.col(c) - F.lit(mean_val)) / F.lit(std_val))
+                    df = df.withColumn(
+                        c, (F.col(c) - F.lit(mean_val)) / F.lit(std_val)
+                    )
                 else:
-                    logger.warning(f'Invariance detected in column {c} (StdDev=0). Nullifying variance drift.')
+                    logger.warning(
+                        f'Invariance detected in column {c} (StdDev=0). '
+                        f'Nullifying variance drift.'
+                    )
                     df = df.withColumn(c, F.col(c) - F.lit(mean_val))
+
         return df
 
     def encode_categorical_features(self, df: DataFrame) -> DataFrame:
@@ -155,6 +251,9 @@ class DataTransformation:
         category_config = self.config['Features'].get('categorical_encoding', {})
         if category_config.get('method') == 'label':
             categorical_cols = category_config.get('columns', [])
+            # Only encode columns that actually exist in the dataframe;
+            # columns listed in both categorical_encoding and drop_columns
+            # (e.g. zone_name) will already be absent — skip silently.
             valid_cols = [c for c in categorical_cols if c in df.columns]
             if valid_cols:
                 logger.info(f'Applying StringIndexer to {len(valid_cols)} categorical columns..')
@@ -189,17 +288,8 @@ class DataTransformation:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='TFT Data Transformation Pipeline')
-    # Default to config/config.yaml relative to data-pipeline/
     default_config_path = str(script_dir.parent / 'config/config.yaml')
     parser.add_argument('--config', type=str, default=default_config_path)
     args = parser.parse_args()
     transformer = DataTransformation(args.config)
     transformer.execute_pipeline()
-
-
-
-
-
-
-
-
