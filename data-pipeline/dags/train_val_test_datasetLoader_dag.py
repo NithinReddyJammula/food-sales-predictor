@@ -15,12 +15,12 @@ with DAG(dag_id='train_val_test_datasetLoader_dag',default_args=default_args,des
     file_path=f'{workspace_path}/ml-model/training/TFT_Dataset.py'
     config_file_path=f"{workspace_path}/data-pipeline/config/config.yaml"
     databricks_cluster={
-        'cluster_id' : os.getenv('DATABRICKS_CLUSTER_ID'),
-        'databricks_python_task': {
+        'existing_cluster_id' : os.getenv('DATABRICKS_CLUSTER_ID'),
+        'spark_python_task': {
             'python_file': file_path,
             'parameters': ['--config',config_file_path]
         },
-        'otel_env_var':{
+        'spark_env_vars':{
             'OTEL_EXPORTER_OTLP_ENDPOINT': os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT'),
             'OTEL_EXPORTER_OTLP_HEADERS': os.getenv('OTEL_EXPORTER_OTLP_HEADERS', '')},
         'libraries': [
