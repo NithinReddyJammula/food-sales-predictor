@@ -23,7 +23,7 @@ with DAG(
 ) as dag:
 
     workspace_path = os.getenv('DATABRICKS_WORKSPACE_PATH')
-    python_file_path = f"{workspace_path}/data-pipeline/Feature_transformation/Data-Transformation.py"
+    python_file_path = f"{workspace_path}/data-pipeline/Feature_transformation/DataTransformation.py"
     config_file_path = f"{workspace_path}/data-pipeline/config/config.yaml"
 
     databricks_cluster_task = {
