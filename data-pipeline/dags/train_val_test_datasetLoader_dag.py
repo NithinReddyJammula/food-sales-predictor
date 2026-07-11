@@ -27,7 +27,9 @@ with DAG(dag_id='train_val_test_datasetLoader_dag',default_args=default_args,des
             {'pypi': {'package': 'PyYAML==6.0.1'}},
             {'pypi': {'package': 'opentelemetry-api'}},
             {'pypi': {'package': 'opentelemetry-sdk'}},
-            {'pypi': {'package': 'opentelemetry-exporter-otlp'}}
+            {'pypi': {'package': 'opentelemetry-exporter-otlp'}},
+            {'pypi': {'package': 'pytorch-forecasting'}},
+            {'pypi': {'package': 'torch'}}
         ]
     }
     load_datasets = DatabricksSubmitRunOperator(task_id='load_datasets',databricks_conn_id='databricks_default',json=databricks_cluster_task)
