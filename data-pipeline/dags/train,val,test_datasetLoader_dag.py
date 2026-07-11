@@ -5,7 +5,7 @@ from airflow.providers.databricks.operators.databricks import DatabricksSubmitRu
 
 default_args={
     'owner':'Nithin Reddy Jammula',
-    'retries':False
+    'retries':False,
     'depends_on_past': False,
     'email_on_failure':True,
 }
