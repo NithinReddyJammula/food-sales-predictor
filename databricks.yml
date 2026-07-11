@@ -19,7 +19,7 @@ resources:
       tasks:
         - task_key: clean
           spark_python_task:
-            python_file: "data-pipeline/Feature_transformation/Data-cleaning.py"
+            python_file: "data-pipeline/Feature_transformation/DataCleaning.py"
           libraries:
             - pypi:
                 package: "PyYAML==6.0.1"

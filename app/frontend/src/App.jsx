@@ -157,10 +157,10 @@ export default function App() {
       <nav className="navbar" id="main-nav">
         <div className="navbar-inner">
           <div className="navbar-brand">
-            <div className="navbar-logo">FS</div>
+            <div className="navbar-logo">FF</div>
             <div>
               <div className="navbar-title">Food Forecast</div>
-              <div className="navbar-subtitle">Smart Cooking Predictions</div>
+              <div className="navbar-subtitle">Food Cooking Predictions</div>
             </div>
           </div>
 
