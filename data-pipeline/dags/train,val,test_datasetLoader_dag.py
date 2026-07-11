@@ -10,7 +10,7 @@ default_args={
     'email_on_failure':True,
 }
 
-with DAG(id='train,val,test_datasetLoader_dag',default_args=default_args,description='DAG for loading train,val,test datasets',schedule_interval=None,start_date=datetime(2026,1,1),catchup=False,tags=['train_dataset_loader','val_dataset_loader','test_dataset_loader']) as dag:
+with DAG(dag_id='train,val,test_datasetLoader_dag',default_args=default_args,description='DAG for loading train,val,test datasets',schedule_interval=None,start_date=datetime(2026,1,1),catchup=False,tags=['train_dataset_loader','val_dataset_loader','test_dataset_loader']) as dag:
     workspace_path=os.getenv('DATABRICKS_WORKSPACE_PATH')
     file_path=f'{workspace_path}/ml-model/training/TFT_Dataset.py'
     config_file_path=f"{workspace_path}/data-pipeline/config/config.yaml"
@@ -22,8 +22,7 @@ with DAG(id='train,val,test_datasetLoader_dag',default_args=default_args,descrip
         },
         'otel_env_var':{
             'OTEL_EXPORTER_OTLP_ENDPOINT': os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT'),
-            'OTEL_EXPORTER_OTLP_HEADERS': os.getenv('OTEL_EXPORTER_OTLP_HEADERS', '')
-        },
+            'OTEL_EXPORTER_OTLP_HEADERS': os.getenv('OTEL_EXPORTER_OTLP_HEADERS', '')},
         'libraries': [
             {'pypi': {'package': 'PyYAML==6.0.1'}},
             {'pypi': {'package': 'opentelemetry-api'}},
