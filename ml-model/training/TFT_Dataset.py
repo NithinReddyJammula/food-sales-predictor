@@ -1,11 +1,19 @@
+import sys
+import os
+from pathlib import Path
+try:
+    script_dir = Path(__file__).resolve().parent
+except NameError:
+    script_dir = Path(os.getcwd())
+data_pipeline_dir = str(script_dir.parent.parent / "data-pipeline")
+if data_pipeline_dir not in sys.path:
+    sys.path.insert(0, data_pipeline_dir)
 from pyspark.sql import SparkSession, DataFrame
 from config.util.azure_config import load_config
 from Feature_transformation.DataTransformation import DataTransformation
 import logging
 from typing import Dict, List, Tuple
-
 logger = logging.getLogger(__name__)
-
 
 class LoadTrainingData:
     def __init__(self):
@@ -25,26 +33,12 @@ class LoadTrainingData:
 
     # ── Dynamic column resolution ─────────────────────────────────────────────
     def resolve_dynamic_columns(self, df: DataFrame) -> None:
-        """
-        Scans `df.columns` for any column whose name starts with a prefix
-        listed under Features.tft_covariates.dynamic_column_prefixes in the
-        config, then appends the matched names to the corresponding static
-        covariate list in-place.
-
-        Example config entry:
-            dynamic_column_prefixes:
-              time_varying_known_reals:
-                - 'feature_promo_'
-        """
         tft_cfg = self.config['Features']['tft_covariates']
         prefix_map: Dict[str, List[str]] = tft_cfg.get('dynamic_column_prefixes', {})
-
         if not prefix_map:
             logger.info("No dynamic_column_prefixes configured — skipping dynamic column resolution.")
             return
-
         df_cols = set(df.columns)
-
         for covariate_list_name, prefixes in prefix_map.items():
             matched: List[str] = []
             for prefix in prefixes:
