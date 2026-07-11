@@ -1,6 +1,11 @@
 bundle:
   name: food-sales-predictor
 
+sync:
+  include:
+    - data-pipeline/**
+    - ml-model/**
+
 variables:
   DATABRICKS_CLUSTER_ID:
     description: "The cluster ID to run tasks on"
