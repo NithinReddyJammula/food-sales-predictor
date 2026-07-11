@@ -6,6 +6,11 @@ sync:
     - data-pipeline/**
     - ml-model/**
 
+targets:
+  default:
+    workspace:
+      root_path: /Workspace/Users/jammulanithinreddy@gmail.com/.bundle/${bundle.name}/${bundle.target}
+
 variables:
   DATABRICKS_CLUSTER_ID:
     description: "The cluster ID to run tasks on"
