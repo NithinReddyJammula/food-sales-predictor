@@ -10,9 +10,11 @@ variables:
   DATABRICKS_CLUSTER_ID:
     description: "The cluster ID to run tasks on"
     default: "0630-020742-js27j99e"
+
   OTEL_EXPORTER_OTLP_ENDPOINT:
     description: "OpenTelemetry OTLP endpoint"
     default: "https://in-otel.hyperdx.io"
+
   OTEL_EXPORTER_OTLP_HEADERS:
     description: "OpenTelemetry headers (e.g. authorization=<key>)"
     default: ""
@@ -22,14 +24,11 @@ resources:
     data-cleaning_job:
       name: "Data Cleaning"
       tasks:
+        # Task 1: Data Cleaning + Feature Transformation
         - task_key: clean
           spark_python_task:
             python_file: "data-pipeline/Feature_transformation/DataCleaning.py"
-        - task_key: load_tft_dataset
-          depends_on:
-            - task_key: clean
-          spark_python_task:
-            python_file: "ml-model/training/TFT_Dataset.py"
+          existing_cluster_id: "${var.DATABRICKS_CLUSTER_ID}"
           libraries:
             - pypi:
                 package: "PyYAML==6.0.1"
@@ -39,4 +38,18 @@ resources:
                 package: "opentelemetry-sdk"
             - pypi:
                 package: "opentelemetry-exporter-otlp"
+        - task_key: load_tft_dataset
+          depends_on:
+            - task_key: clean
+          spark_python_task:
+            python_file: "ml-model/training/TFT_Dataset.py"
           existing_cluster_id: "${var.DATABRICKS_CLUSTER_ID}"
+          libraries:
+            - pypi:
+                package: "PyYAML==6.0.1"
+            - pypi:
+                package: "opentelemetry-api"
+            - pypi:
+                package: "opentelemetry-sdk"
+            - pypi:
+                package: "opentelemetry-exporter-otlp"
