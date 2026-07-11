@@ -63,3 +63,7 @@ resources:
                 package: "opentelemetry-sdk"
             - pypi:
                 package: "opentelemetry-exporter-otlp-proto-http"
+            - pypi:
+                package: "pytorch-forecasting"
+            - pypi:
+                package: "torch"
