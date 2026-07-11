@@ -15,14 +15,14 @@ import logging
 from typing import Dict, List, Tuple
 logger = logging.getLogger(__name__)
 
-class LoadTrainingData:
+class LoadTransformedData:
     def __init__(self):
         self.spark = SparkSession.builder.getOrCreate()
         self.config = load_config()
 
 
     # ── Data loading ─────────────────────────────────────────────────────────
-    def load_training_data(self) -> DataFrame:
+    def load_transformed_data(self) -> DataFrame:
         transformation = DataTransformation(self.config)
         _, transformed_data_location = transformation.get_table_urls()
         try:
@@ -89,7 +89,7 @@ class LoadTrainingData:
 
 class TFTDataset:
     def __init__(self, config: Dict):
-        self.config = config
+        self.config = load_config()
 
     def build_dataset(self, df: DataFrame) -> "TimeSeriesDataSet":
         from pytorch_forecasting import TimeSeriesDataSet
@@ -122,6 +122,19 @@ class TFTDataset:
             add_target_scales=True,
             add_encoder_length=True)
         return dataset
+
+if __name__ == "__main__":
+    config=load_config()
+    transform=LoadTransformedData()
+    transformed_data= transform.load_transformed_data()
+    transform.resolve_dynamic_columns(transformed_data)
+    train_dataset, val_dataset, test_dataset=transform.split_training_data(transformed_data)
+    tft_dataset= TFTDataset(config)
+    train_timeseries_dataset=tft_dataset.build_dataset(train_dataset)
+    val_timeseries_dataset=tft_dataset.build_dataset(val_dataset)
+    test_timeseries_dateset=tft_dataset.build_dataset(test_dataset)
+
+
 
 
 
