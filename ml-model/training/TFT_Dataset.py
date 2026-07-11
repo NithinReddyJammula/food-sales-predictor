@@ -20,12 +20,13 @@ logger = logging.getLogger(__name__)
 class LoadTransformedData:
     def __init__(self):
         self.spark = SparkSession.builder.getOrCreate()
-        self.config = load_config()
+        self._config_path = str(Path(data_pipeline_dir) / "config" / "config.yaml")
+        self.config = load_config(self._config_path)
 
 
     # ── Data loading ─────────────────────────────────────────────────────────
     def load_transformed_data(self) -> DataFrame:
-        transformation = DataTransformation(self.config)
+        transformation = DataTransformation(self._config_path)
         _, transformed_data_location = transformation.get_table_urls()
         try:
             transformed_training_data = self.spark.read.table(transformed_data_location)
@@ -91,7 +92,7 @@ class LoadTransformedData:
 
 class TFTDataset:
     def __init__(self, config: Dict):
-        self.config = load_config()
+        self.config = config
 
     def build_dataset(self, df: DataFrame) -> "TimeSeriesDataSet":
         from pytorch_forecasting import TimeSeriesDataSet
@@ -126,12 +127,12 @@ class TFTDataset:
         return dataset
 
 if __name__ == "__main__":
-    config=load_config()
+    _config_path = str(Path(data_pipeline_dir) / "config" / "config.yaml")
     transform=LoadTransformedData()
     transformed_data= transform.load_transformed_data()
     transform.resolve_dynamic_columns(transformed_data)
     train_dataset, val_dataset, test_dataset=transform.split_training_data(transformed_data)
-    tft_dataset= TFTDataset(config)
+    tft_dataset= TFTDataset(transform.config)
     train_timeseries_dataset=tft_dataset.build_dataset(train_dataset)
     val_timeseries_dataset=tft_dataset.build_dataset(val_dataset)
     test_timeseries_dateset=tft_dataset.build_dataset(test_dataset)
