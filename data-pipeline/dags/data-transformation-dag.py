@@ -9,7 +9,7 @@ default_args = {
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': timedelta(minutes=5)
+    'retry_delay': timedelta(minutes=1)
 }
 
 with DAG(
@@ -22,12 +22,12 @@ with DAG(
     tags=['tft', 'gold_layer', 'forecasting']
 ) as dag:
 
-    workspace_path = os.getenv('DATABRICKS_WORKSPACE_PATH', '/Workspace/Users/2102c422-f75d-4b03-bb85-27784ee12c13/.bundle/food-sales-predictor/default/files')
+    workspace_path = os.getenv('DATABRICKS_WORKSPACE_PATH')
     python_file_path = f"{workspace_path}/data-pipeline/Feature_transformation/Data-Transformation.py"
     config_file_path = f"{workspace_path}/data-pipeline/config/config.yaml"
 
     databricks_cluster_task = {
-        'existing_cluster_id': os.getenv('DATABRICKS_CLUSTER_ID', '0630-020742-js27j99e'),
+        'existing_cluster_id': os.getenv('DATABRICKS_CLUSTER_ID'),
         'spark_python_task': {
             'python_file': python_file_path,
             'parameters': [
@@ -35,7 +35,7 @@ with DAG(
             ]
         },
         'spark_env_vars': {
-            'OTEL_EXPORTER_OTLP_ENDPOINT': os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'https://in-otel.hyperdx.io'),
+            'OTEL_EXPORTER_OTLP_ENDPOINT': os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT'),
             'OTEL_EXPORTER_OTLP_HEADERS': os.getenv('OTEL_EXPORTER_OTLP_HEADERS', '')
         },
         'libraries': [
@@ -51,5 +51,3 @@ with DAG(
         databricks_conn_id='databricks_default',
         json=databricks_cluster_task
     )
-
-    run_data_transformation

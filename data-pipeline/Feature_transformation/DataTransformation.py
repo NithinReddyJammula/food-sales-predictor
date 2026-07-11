@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from pyspark.sql import Window
 
 # Add data-pipeline directory to python path to resolve config package
 try:
@@ -14,7 +15,6 @@ except NameError:
         script_dir = Path(co_filename).resolve().parent
     else:
         script_dir = Path(os.getcwd())
-
 parent_dir = str(script_dir.parent)
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
@@ -274,6 +274,11 @@ class DataTransformation:
             .transform(self.extract_binary_features) \
             .transform(self.scale_features) \
             .transform(self.encode_categorical_features)
+
+        time_window=(Window.partitionBy('store_id','Item Slin').orderBy('transaction_timestamp'))
+
+        if 'time_idx' not in df_transformed.columns:
+            df_transformed = df_transformed.withColumn('time_idx', F.row_number().over(time_window)-1)
 
         logger.info(f'Writing transformed dataset to Target Catalog Layer: {target_uri}')
         df_transformed.write.format('delta') \

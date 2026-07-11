@@ -99,6 +99,9 @@ Features:
     - 'product_active_flag'
 
   tft_covariates:
+    # ── 2. STATIC COVARIATES (Time-Invariant) ──────────────────────────────
+    # Properties that do not change over the time dimension for a given
+    # (store_id, Item Slin) series.
     static_categoricals:
       - 'store_id'
       - 'Item Slin'
@@ -122,24 +125,25 @@ Features:
       - 'postal_code'
       - 'market_code'
       - 'Super_Market'
-      - 'zone_name'
+      # FIX: zone_name removed — it is listed in drop_columns and will not
+      #      exist in the transformed dataframe.
       - 'store_ops_code'
       - 'total_zone_code'
       - 'super_zone'
       - 'Operating_System'
       - 'POS_Type'
-      - 'Flag_Delivery'
-      - 'self_checkout'
-      - 'Mobile_Checkout'
-      - 'Metro'
-      - 'Corner'
+      - 'Flag_Delivery'       # binary-encoded 0/1 — static per store
+      - 'self_checkout'       # binary-encoded 0/1 — static per store
+      - 'Mobile_Checkout'     # binary-encoded 0/1 — static per store
+      - 'Metro'               # binary-encoded 0/1 — static per store
+      - 'Corner'              # binary-encoded 0/1 — static per store
       - 'PREDICTIVE_MODEL'
       - 'ROUNDING'
       - 'ORGANIZATION_ID'
       - 'country_ops_code'
       - 'country_ops_description'
-      - 'Rest_Ops'
-      - 'Daylight_Saving_Indicator'
+      - 'Rest_Ops'            # binary-encoded 0/1 — static per store
+      - 'Daylight_Saving_Indicator' # binary-encoded 0/1 — static per store
       - 'Operator_Changeover_Date'
       - 'Store_Operating_Hours_Mon'
       - 'Store_Operating_Hours_Tue'
@@ -158,31 +162,36 @@ Features:
       - 'PRODUCTION_MULTIPLIER'
       - 'Latitude'
       - 'Longitude'
-      - 'PERISHABLE'
+      - 'PERISHABLE'              # binary 0/1 flag — stays as real for TFT embedding
       - 'FORECAST_WEIGHT_PERCENTAGE'
       - 'OPENING_PRES_PREDICTIVE'
       - 'OPENING_PRES_FIXED'
       - 'Store_Hours_Per_Day'
       - 'Retail_Minimum_Hours'
       - 'Restaurant_Minimum_Hours'
+      - 'DAYPART_DAYS'            # FIX: integer count, not a string categorical
+
+    # ── 3. KNOWN FUTURE INPUTS (Time-Varying Known) ────────────────────────
+    # Inputs whose future values are known at inference time.
     time_varying_known_categoricals:
       - 'DAYPART_NAME'
       - 'PERIOD_NAME'
       - 'PRODUCTION_PERIOD_GROUP_NAME'
-      - 'DAYPART_DAYS'
-      - 'product_active_flag'
-      - 'eff_reg_start_date'
-      - 'eff_reg_end_date'
-      - 'LastChgDTM'
       - 'weekday'
       - 'Holidays'
       - 'event_name_1'
       - 'event_type_1'
       - 'event_name_2'
       - 'event_type_2'
-      - 'promotion_id'
+      # FIX: removed 'promotion_id' — OHE-expanded into feature_promo_* columns
+      # FIX: removed 'DAYPART_DAYS' — integer count, moved to static_reals
+      # FIX: removed 'product_active_flag' — post binary-encoding it is 0/1 int,
+      #      moved to time_varying_known_reals
+      # FIX: removed 'eff_reg_start_date', 'eff_reg_end_date', 'LastChgDTM' —
+      #      future values unknowable → moved to time_varying_unknown_categoricals
+
     time_varying_known_reals:
-      # Cyclical datetime features (sin/cos pairs replace raw integers)
+      # Cyclical datetime features (sin/cos pairs produced by extract_datetime_features)
       - 'transaction_timestamp_hour_sin'
       - 'transaction_timestamp_hour_cos'
       - 'transaction_timestamp_dayofweek_sin'
@@ -200,13 +209,25 @@ Features:
       - 'day_date_dayofmonth_sin'
       - 'day_date_dayofmonth_cos'
       - 'day_date_is_weekend'             # binary flag — kept as raw 0/1
-      # Binary flags
+      # Binary flags — future values are schedulable / publicly known
       - 'snap_CA'
       - 'snap_TX'
       - 'snap_WI'
+      - 'product_active_flag'             # FIX: moved from known_categoricals — now 0/1 int
       # Financial known-ahead
       - 'promo_amount'
-    time_varying_unknown_categoricals: []
+      # NOTE: feature_promo_* OHE columns are discovered dynamically at runtime.
+      # See 'dynamic_column_prefixes.time_varying_known_reals' below — the
+      # LoadTrainingData.resolve_dynamic_columns() method scans the actual
+      # transformed dataframe and appends any matching columns to this list.
+
+    # ── 4. PAST-OBSERVED INPUTS (Time-Varying Unknown) ─────────────────────
+    # Inputs whose future values are NOT known at inference time.
+    time_varying_unknown_categoricals:
+      - 'eff_reg_start_date'   # FIX: moved from known — future price dates unknowable
+      - 'eff_reg_end_date'     # FIX: moved from known — future price dates unknowable
+      - 'LastChgDTM'           # FIX: moved from known — last change timestamp is past-only
+
     time_varying_unknown_reals:
       - 'sales_unit_qty'   # TARGET — only known historically
       - 'Gross_sales'
@@ -241,6 +262,16 @@ Features:
           - 'PRODUCTION_MULTIPLIER'
           # sales_unit_qty added dynamically by scale_features() after log1p
 
+    # ── Dynamic column discovery ────────────────────────────────────────────
+    # Columns whose names are only known after the transformation pipeline
+    # runs (e.g. OHE-expanded promo codes).  LoadTrainingData.resolve_dynamic_columns()
+    # reads the actual dataframe, finds all columns matching each prefix, and
+    # appends them to the corresponding covariate list before building the
+    # TimeSeriesDataSet.
+    dynamic_column_prefixes:
+      time_varying_known_reals:
+        - 'feature_promo_'   # covers feature_promo_<code> and feature_promo_SNAP_*
+
   categorical_encoding:
     method: 'label'
     columns:
@@ -258,7 +289,7 @@ Features:
       - 'event_type_1'
       - 'event_name_2'
       - 'event_type_2'
-      - 'promotion_id'
+      # FIX: removed 'promotion_id' — OHE-expanded into feature_promo_* columns
       - 'DMA_Name'
       - 'zone_code'
       - 'cat_id'
@@ -374,9 +405,10 @@ Features:
     - 'year'
     - 'wm_yr_wk'
 
-  training:
-    max_prediction_length: 7
-    max_encoder_length: 30
-    batch_size: 128
-    max_epochs: 50
-    learning_rate: 0.001
+training:
+  max_prediction_length: 7
+  max_encoder_length: 30
+  batch_size: 128
+  max_epochs: 50
+  learning_rate: 0.001
+  dataset-split: [0.7,0.15,0.15]
