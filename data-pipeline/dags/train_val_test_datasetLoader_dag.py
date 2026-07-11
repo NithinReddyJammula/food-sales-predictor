@@ -14,7 +14,7 @@ with DAG(dag_id='train_val_test_datasetLoader_dag',default_args=default_args,des
     workspace_path=os.getenv('DATABRICKS_WORKSPACE_PATH')
     file_path=f'{workspace_path}/ml-model/training/TFT_Dataset.py'
     config_file_path=f"{workspace_path}/data-pipeline/config/config.yaml"
-    databricks_cluster={
+    databricks_cluster_task={
         'existing_cluster_id' : os.getenv('DATABRICKS_CLUSTER_ID'),
         'spark_python_task': {
             'python_file': file_path,
@@ -30,5 +30,5 @@ with DAG(dag_id='train_val_test_datasetLoader_dag',default_args=default_args,des
             {'pypi': {'package': 'opentelemetry-exporter-otlp'}}
         ]
     }
-    load_datasets = DatabricksSubmitRunOperator(task_id='load_datasets',databricks_conn_id='databricks_default',json=databricks_cluster)
+    load_datasets = DatabricksSubmitRunOperator(task_id='load_datasets',databricks_conn_id='databricks_default',json=databricks_cluster_task)
 

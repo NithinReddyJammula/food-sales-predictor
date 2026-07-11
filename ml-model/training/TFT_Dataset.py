@@ -78,6 +78,10 @@ class LoadTrainingData:
         logger.info(f'Splitting of Dataset completed..')
         train_dataset.write.format('delta').mode('overwrite').option('overwriteSchema','true').option('delta.columnMapping.mode','name').option('delta.autoOptimize.optimizeWrite','true') \
                      .option('delta.autoOptimize.autoCompact','true').saveAsTable('training_dataset')
+        val_dataset.write.format('delta').mode('overwrite').option('overwriteSchema','true').option('delta.columnMapping.mode','name').option('delta.autoOptimize.optimizeWrite','true') \
+                     .option('delta.autoOptimize.autoCompact','true').saveAsTable('validation_dataset')
+        test_dataset.write.format('delta').mode('overwrite').option('overwriteSchema','true').option('delta.columnMapping.mode','name').option('delta.autoOptimize.optimizeWrite','true') \
+                     .option('delta.autoOptimize.autoCompact','true').saveAsTable('test_dataset')
         return train_dataset, val_dataset, test_dataset
 
 class TFTDataset:
