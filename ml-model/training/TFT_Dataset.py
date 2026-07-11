@@ -128,14 +128,12 @@ class TFTDataset:
 
 if __name__ == "__main__":
     _config_path = str(Path(data_pipeline_dir) / "config" / "config.yaml")
-    transform=LoadTransformedData()
-    transformed_data= transform.load_transformed_data()
+    transform = LoadTransformedData()
+    transformed_data = transform.load_transformed_data()
     transform.resolve_dynamic_columns(transformed_data)
-    train_dataset, val_dataset, test_dataset=transform.split_training_data(transformed_data)
-    tft_dataset= TFTDataset(transform.config)
-    train_timeseries_dataset=tft_dataset.build_dataset(train_dataset)
-    val_timeseries_dataset=tft_dataset.build_dataset(val_dataset)
-    test_timeseries_dateset=tft_dataset.build_dataset(test_dataset)
+    train_dataset, val_dataset, test_dataset = transform.split_training_data(transformed_data)
+    logger.info("Train/val/test splits written to Delta tables. TFT TimeSeriesDataSet "
+                "construction should run locally during model training, not in this Spark job.")
 
 
 
