@@ -20,11 +20,11 @@ variables:
     default: "0630-020742-js27j99e"
 
   OTEL_EXPORTER_OTLP_ENDPOINT:
-    description: "OpenTelemetry OTLP endpoint"
-    default: "https://in-otel.hyperdx.io"
+    description: "OpenTelemetry OTLP endpoint for New Relic"
+    default: "https://otlp.nr-data.net:4318"
 
   OTEL_EXPORTER_OTLP_HEADERS:
-    description: "OpenTelemetry headers (e.g. authorization=<key>)"
+    description: "OpenTelemetry OTLP headers (e.g. api-key=<NEW_RELIC_LICENSE_KEY>)"
     default: ""
 
 resources:
@@ -36,6 +36,9 @@ resources:
         - task_key: clean
           spark_python_task:
             python_file: "data-pipeline/Feature_transformation/DataCleaning.py"
+            parameters:
+              - "--config"
+              - "/Workspace/Shared/.bundle/${bundle.name}/${bundle.target}/files/data-pipeline/config/config.yaml"
           existing_cluster_id: "${var.DATABRICKS_CLUSTER_ID}"
           libraries:
             - pypi:
@@ -45,7 +48,9 @@ resources:
             - pypi:
                 package: "opentelemetry-sdk"
             - pypi:
-                package: "opentelemetry-exporter-otlp"
+                package: "opentelemetry-exporter-otlp-proto-http"
+
+        # Task 2: Load and split TFT training data
         - task_key: load_tft_dataset
           depends_on:
             - task_key: clean
@@ -60,4 +65,4 @@ resources:
             - pypi:
                 package: "opentelemetry-sdk"
             - pypi:
-                package: "opentelemetry-exporter-otlp"
+                package: "opentelemetry-exporter-otlp-proto-http"

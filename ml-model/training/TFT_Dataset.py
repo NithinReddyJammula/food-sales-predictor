@@ -11,8 +11,10 @@ if data_pipeline_dir not in sys.path:
 from pyspark.sql import SparkSession, DataFrame
 from config.util.azure_config import load_config
 from Feature_transformation.DataTransformation import DataTransformation
+from config.util.monitoring import Observability
 import logging
 from typing import Dict, List, Tuple
+Observability.initialize()
 logger = logging.getLogger(__name__)
 
 class LoadTransformedData:
