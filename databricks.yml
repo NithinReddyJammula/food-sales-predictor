@@ -9,7 +9,10 @@ sync:
 targets:
   default:
     workspace:
-      root_path: /Workspace/Users/jammulanithinreddy@gmail.com/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    permissions:
+      - group_name: "users"
+        level: "CAN_MANAGE"
 
 variables:
   DATABRICKS_CLUSTER_ID:
