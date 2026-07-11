@@ -20,6 +20,7 @@ class LoadTrainingData:
         self.spark = SparkSession.builder.getOrCreate()
         self.config = load_config()
 
+
     # ── Data loading ─────────────────────────────────────────────────────────
     def load_training_data(self) -> DataFrame:
         transformation = DataTransformation(self.config)
@@ -70,12 +71,20 @@ class LoadTrainingData:
         val_dataset=transformed_training_data.filter(transformed_training_data.time_idx<=val_end)
         test_dataset=transformed_training_data.filter(transformed_training_data.time_idx>val_end)
         logger.info(f'Splitting of Dataset completed..')
+        
+        catalog = self.config['databricks']['catalog']
+        processed_schema = self.config['schemas']['processed']
+        
+        train_table = f"{catalog}.`{processed_schema}`.training_dataset"
+        val_table = f"{catalog}.`{processed_schema}`.validation_dataset"
+        test_table = f"{catalog}.`{processed_schema}`.test_dataset"
+        
         train_dataset.write.format('delta').mode('overwrite').option('overwriteSchema','true').option('delta.columnMapping.mode','name').option('delta.autoOptimize.optimizeWrite','true') \
-                     .option('delta.autoOptimize.autoCompact','true').saveAsTable('training_dataset')
+                     .option('delta.autoOptimize.autoCompact','true').saveAsTable(train_table)
         val_dataset.write.format('delta').mode('overwrite').option('overwriteSchema','true').option('delta.columnMapping.mode','name').option('delta.autoOptimize.optimizeWrite','true') \
-                     .option('delta.autoOptimize.autoCompact','true').saveAsTable('validation_dataset')
+                     .option('delta.autoOptimize.autoCompact','true').saveAsTable(val_table)
         test_dataset.write.format('delta').mode('overwrite').option('overwriteSchema','true').option('delta.columnMapping.mode','name').option('delta.autoOptimize.optimizeWrite','true') \
-                     .option('delta.autoOptimize.autoCompact','true').saveAsTable('test_dataset')
+                     .option('delta.autoOptimize.autoCompact','true').saveAsTable(test_table)
         return train_dataset, val_dataset, test_dataset
 
 class TFTDataset:
