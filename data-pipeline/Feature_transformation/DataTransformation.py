@@ -292,6 +292,9 @@ class DataTransformation:
 
 if __name__ == "__main__":
     import argparse
+    from config.util.monitoring import Observability
+
+    Observability.initialize()
     parser = argparse.ArgumentParser(description='TFT Data Transformation Pipeline')
     default_config_path = str(script_dir.parent / 'config/config.yaml')
     parser.add_argument('--config', type=str, default=default_config_path)
