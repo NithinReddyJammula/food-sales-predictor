@@ -301,3 +301,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     transformer = DataTransformation(args.config)
     transformer.execute_pipeline()
+    Observability.shutdown()

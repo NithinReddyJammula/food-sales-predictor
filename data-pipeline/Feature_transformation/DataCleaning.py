@@ -136,6 +136,7 @@ if __name__=="__main__":
     args=parser.parse_args()
     cleaner=DatasetCleaning(tracer)
     cleaner.clean_data(args.config)
+    Observability.shutdown()
 
 
 
