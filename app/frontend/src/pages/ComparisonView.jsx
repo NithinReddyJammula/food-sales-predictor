@@ -3,6 +3,9 @@
  */
 
 import { useMemo, useState } from 'react';
+import { logger } from '../services/logger.js';
+const logClick = (element, meta = {}) =>
+  logger.info(`UI click: ${element}`, { event: 'click', element, ...meta });
 
 export default function ComparisonView({
   comparison,
@@ -105,7 +108,7 @@ export default function ComparisonView({
       <div className="slot-tabs" id="category-filter-tabs">
         <button
           className={`slot-tab ${filterCategory === null ? 'active' : ''}`}
-          onClick={() => setFilterCategory(null)}
+          onClick={() => { logClick('comparison-filter:all'); setFilterCategory(null); }}
         >
           All Items
         </button>
@@ -113,7 +116,7 @@ export default function ComparisonView({
           <button
             key={cat.id}
             className={`slot-tab ${filterCategory === cat.name ? 'active' : ''}`}
-            onClick={() => setFilterCategory(cat.name)}
+            onClick={() => { logClick(`comparison-filter:${cat.name}`, { category: cat.name }); setFilterCategory(cat.name); }}
           >
             {cat.name}
           </button>

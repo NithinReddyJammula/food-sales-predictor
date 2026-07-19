@@ -5,7 +5,11 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { api } from '../services/api.js';
+import { logger } from '../services/logger.js';
 import { STORES, FLAT_ITEMS as ITEMS, getItemsByCategory, CATEGORY_COLORS } from '../data/food-data.js';
+
+const logClick = (element, meta = {}) =>
+  logger.info(`UI click: ${element}`, { event: 'click', element, ...meta });
 
 const CATEGORIES = getItemsByCategory();
 
@@ -30,7 +34,11 @@ export default function SimulatorView() {
 
   // ── Toggle category ────────────────────────────────
   const toggleCat = useCallback((cat) => {
-    setExpandedCats((p) => ({ ...p, [cat]: !p[cat] }));
+    setExpandedCats((p) => {
+      const next = !p[cat];
+      logClick(`category-toggle:${cat}`, { category: cat, expanded: next });
+      return { ...p, [cat]: next };
+    });
   }, []);
 
   // ── Quantity handler ───────────────────────────────
@@ -43,6 +51,13 @@ export default function SimulatorView() {
     const qty = parseInt(quantities[item.i_item_sk], 10);
     if (!qty || qty <= 0) return;
 
+    logClick('simulator:add-item', {
+      item_sk: item.i_item_sk,
+      item_name: item.i_product_name,
+      category: item.i_category,
+      qty,
+      store: selectedStore,
+    });
     setSubmitting((p) => ({ ...p, [item.i_item_sk]: true }));
     const salesPrice = +(item.i_current_price * 0.92).toFixed(2);
 
@@ -146,7 +161,10 @@ export default function SimulatorView() {
           className="sim-store-select"
           id="store-select"
           value={selectedStore}
-          onChange={(e) => setSelectedStore(Number(e.target.value))}
+          onChange={(e) => {
+            logClick('simulator:store-select', { store_sk: Number(e.target.value) });
+            setSelectedStore(Number(e.target.value));
+          }}
         >
           {STORES.map((s) => (
             <option key={s.s_store_sk} value={s.s_store_sk}>

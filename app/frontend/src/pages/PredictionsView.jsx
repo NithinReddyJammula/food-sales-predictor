@@ -3,6 +3,10 @@
  * categorized by item type and subtypes for each 2-hour time slot.
  */
 
+import { logger } from '../services/logger.js';
+const logClick = (element, meta = {}) =>
+  logger.info(`UI click: ${element}`, { event: 'click', element, ...meta });
+
 export default function PredictionsView({
   predictions,
   loading,
@@ -83,7 +87,7 @@ export default function PredictionsView({
       <div className="slot-tabs" id="slot-tabs">
         <button
           className={`slot-tab ${selectedSlot === null ? 'active' : ''}`}
-          onClick={() => setSelectedSlot(null)}
+          onClick={() => { logClick('slot-tab:all'); setSelectedSlot(null); }}
         >
           All Slots
         </button>
@@ -94,7 +98,7 @@ export default function PredictionsView({
             className={`slot-tab ${selectedSlot === s.slot ? 'active' : ''} ${
               s.slot === currentSlot ? 'current' : ''
             }`}
-            onClick={() => setSelectedSlot(s.slot)}
+            onClick={() => { logClick(`slot-tab:${s.slot}`, { slot: s.slot, label: s.label }); setSelectedSlot(s.slot); }}
           >
             {s.label}
             {s.slot === currentSlot && ' ●'}
