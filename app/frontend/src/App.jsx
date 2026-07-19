@@ -6,6 +6,10 @@ import ComparisonView from './pages/ComparisonView.jsx';
 import SimulatorView from './pages/SimulatorView.jsx';
 import { logger } from './services/logger.js';
 
+// Convenience wrapper so all click events are tagged consistently
+const logClick = (element, meta = {}) =>
+  logger.info(`UI click: ${element}`, { event: 'click', element, ...meta });
+
 const PREDICTION_SLOTS = [
   { slot: 1, start: '00:00', end: '02:00', label: '12–2 AM' },
   { slot: 2, start: '02:00', end: '04:00', label: '2–4 AM' },
@@ -178,21 +182,21 @@ export default function App() {
             <button
               id="nav-predictions"
               className={`nav-btn ${view === 'predictions' ? 'active' : ''}`}
-              onClick={() => setView('predictions')}
+              onClick={() => { logClick('nav:predictions'); setView('predictions'); }}
             >
               📊 Predictions
             </button>
             <button
               id="nav-comparison"
               className={`nav-btn ${view === 'comparison' ? 'active' : ''}`}
-              onClick={() => setView('comparison')}
+              onClick={() => { logClick('nav:comparison'); setView('comparison'); }}
             >
               ⚖️ Forecast vs Actual
             </button>
             <button
               id="nav-simulator"
               className={`nav-btn ${view === 'simulator' ? 'active' : ''}`}
-              onClick={() => setView('simulator')}
+              onClick={() => { logClick('nav:simulator'); setView('simulator'); }}
             >
               🛒 Simulator
             </button>
@@ -204,7 +208,10 @@ export default function App() {
               type="date"
               className="date-input"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => {
+                logClick('date-picker', { date: e.target.value });
+                setSelectedDate(e.target.value);
+              }}
             />
           </div>
         </div>
