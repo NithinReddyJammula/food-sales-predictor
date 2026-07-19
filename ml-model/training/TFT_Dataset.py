@@ -23,7 +23,6 @@ class LoadTransformedData:
         self._config_path = str(Path(data_pipeline_dir) / "config" / "config.yaml")
         self.config = load_config(self._config_path)
 
-
     # ── Data loading ─────────────────────────────────────────────────────────
     def load_transformed_data(self) -> DataFrame:
         transformation = DataTransformation(self._config_path)
@@ -90,6 +89,7 @@ class LoadTransformedData:
                      .option('delta.autoOptimize.autoCompact','true').saveAsTable(test_table)
         return train_dataset, val_dataset, test_dataset
 
+
 class TFTDataset:
     def __init__(self, config: Dict):
         self.config = config
@@ -126,11 +126,11 @@ class TFTDataset:
             add_encoder_length=True)
         return dataset
 
+
 if __name__ == "__main__":
     _config_path = str(Path(data_pipeline_dir) / "config" / "config.yaml")
     transform = LoadTransformedData()
     transformed_data = transform.load_transformed_data()
-    transform.resolve_dynamic_columns(transformed_data)
     train_dataset, val_dataset, test_dataset = transform.split_training_data(transformed_data)
     logger.info("Train/val/test splits written to Delta tables. TFT TimeSeriesDataSet "
                 "construction should run locally during model training, not in this Spark job.")

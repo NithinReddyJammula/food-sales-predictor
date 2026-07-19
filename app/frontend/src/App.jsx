@@ -4,6 +4,7 @@ import { api } from './services/api.js';
 import PredictionsView from './pages/PredictionsView.jsx';
 import ComparisonView from './pages/ComparisonView.jsx';
 import SimulatorView from './pages/SimulatorView.jsx';
+import { logger } from './services/logger.js';
 
 const PREDICTION_SLOTS = [
   { slot: 1, start: '00:00', end: '02:00', label: '12–2 AM' },
@@ -85,6 +86,15 @@ export default function App() {
 
   const currentSlot = getCurrentSlot();
 
+  // Lifecycle logs
+  useEffect(() => {
+    logger.info('Frontend App mounted');
+  }, []);
+
+  useEffect(() => {
+    logger.info(`View switched to ${view}`, { view });
+  }, [view]);
+
   // Fetch predictions
   useEffect(() => {
     if (view !== 'predictions') return;
@@ -101,7 +111,7 @@ export default function App() {
         }
         setPredictions(data);
       } catch (err) {
-        console.error('Failed to fetch predictions:', err);
+        logger.error('Failed to fetch predictions', { error: err.message, date: selectedDate, slot: selectedSlot });
         // Set empty structure so UI works without data
         setPredictions({ slots: {} });
       } finally {
@@ -123,7 +133,7 @@ export default function App() {
         const data = await api.getComparison(selectedDate);
         setComparison(data);
       } catch (err) {
-        console.error('Failed to fetch comparison:', err);
+        logger.error('Failed to fetch comparison', { error: err.message, date: selectedDate });
         setComparison([]);
       } finally {
         setLoading(false);
