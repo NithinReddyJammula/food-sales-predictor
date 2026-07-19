@@ -18,6 +18,7 @@ class Observability:
             return
         endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
         headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+        nr_key = os.getenv("NEW_RELIC_API_KEY")
         if not endpoint:
             try:
                 from config.util.azure_config import load_config
@@ -35,8 +36,13 @@ class Observability:
             endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
             headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
 
+        # Fallback to New Relic defaults if NEW_RELIC_API_KEY / NEW_RELIC_LICENSE_KEY is present
+        if not endpoint and nr_key:
+            endpoint = "https://otlp.nr-data.net:4318"
+            os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = endpoint
+
         if not endpoint:
-            logging.warning("OTEL_EXPORTER_OTLP_ENDPOINT environment variable is not set. Telemetry export is disabled.")
+            logging.warning("OTEL_EXPORTER_OTLP_ENDPOINT and NEW_RELIC_API_KEY environment variables are not set. Telemetry export is disabled.")
             Observability._initialized = True
             return
 
@@ -56,6 +62,10 @@ class Observability:
                 if "=" in part:
                     k, v = part.split("=", 1)
                     headers_dict[k.strip()] = v.strip()
+
+        # Build api-key header from NEW_RELIC_API_KEY if not already present
+        if nr_key and not headers_dict.get("api-key"):
+            headers_dict["api-key"] = nr_key
 
         log_provider = LoggerProvider()
         _logs.set_logger_provider(log_provider)
@@ -82,6 +92,20 @@ class Observability:
     @staticmethod
     def get_tracer(name: str):
         return trace.get_tracer(name)
+    @staticmethod
+    def shutdown():
+        if not Observability._initialized:
+            return
+        try:
+            if hasattr(Observability, "log_provider") and Observability.log_provider:
+                Observability.log_provider.shutdown()
+        except Exception as e:
+            print(f"Error shutting down log provider: {e}", file=sys.stderr)
+        try:
+            if hasattr(Observability, "trace_provider") and Observability.trace_provider:
+                Observability.trace_provider.shutdown()
+        except Exception as e:
+            print(f"Error shutting down trace provider: {e}", file=sys.stderr)
 
 class TraceContextFilter(logging.Filter):
     def filter(self,record):
