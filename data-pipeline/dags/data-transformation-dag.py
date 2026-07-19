@@ -35,8 +35,9 @@ with DAG(
             ]
         },
         'spark_env_vars': {
-            'OTEL_EXPORTER_OTLP_ENDPOINT': os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT'),
-            'OTEL_EXPORTER_OTLP_HEADERS': os.getenv('OTEL_EXPORTER_OTLP_HEADERS', '')
+            'NEW_RELIC_API_KEY': os.getenv('NEW_RELIC_API_KEY', ''),
+            'OTEL_EXPORTER_OTLP_ENDPOINT': 'https://otlp.nr-data.net:4318',
+            'OTEL_EXPORTER_OTLP_HEADERS': f"api-key={os.getenv('NEW_RELIC_API_KEY', '')}" if os.getenv('NEW_RELIC_API_KEY') else '',
         },
         'libraries': [
             {'pypi': {'package': 'PyYAML==6.0.1'}},
