@@ -19,6 +19,7 @@ x-airflow-common: &airflow-common
     AIRFLOW_CONN_DATABRICKS_DEFAULT: databricks://@${DATABRICKS_HOST:-}?token=${DATABRICKS_TOKEN:-}
     NEW_RELIC_API_KEY: ${NEW_RELIC_API_KEY:-}
     AIRFLOW__LOGGING__LOGGING_CONFIG_CLASS: config.airflow_log_config.LOGGING_CONFIG
+    PYTHONPATH: /opt/airflow
     # Azure Data Lake
     AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT:-}
     AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY:-}
